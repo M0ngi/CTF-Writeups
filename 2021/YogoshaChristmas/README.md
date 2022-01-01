@@ -18,9 +18,9 @@ I even ended up checking the followers & the following of the account, I was so 
 After a while, a pretty long one, I decided to actually focus on the content of the posts & get a meaning out of it.
 The last post made me sure that I'll have to find what I'm looking for in an other website, not Twitter, but where?
 
-```
-I shared the important image I got in a popular website. I like this website since I'm the master of that Jutsu
-```
+<p align="center">
+  <img src="/2021/YogoshaChristmas/img/post.jpg"><br/>
+</p>
 
 <br/>
 As a first thought, I ended up looking in Github, thanks to the "master" of that. After a couple of searches I decided to move on.<br/>
@@ -32,10 +32,6 @@ Now, I have a little bit of knowledge & I suppose I'm ready to refresh my mind &
 
 Again, I quickly rechecked the pictures, even checked the link in the profile picture but decided to move on quickly. I tried few words that I found in the story but no results.
 I went again to the last post in the account to recheck it. What could the website be? 
-
-<p align="center">
-  <img src="/2021/YogoshaChristmas/img/post.jpg"><br/>
-</p>
 
 "I'm a master of that jutsu", thanks to my little knowledge, I now know that Uchiha Shisui is known as a master of "Body Flicker" technique
 and not the teleportation as the GIF shows, so I googled "Body Flicker", as simple as that BUT I didn't get anything specific so...
