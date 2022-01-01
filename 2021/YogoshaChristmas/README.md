@@ -33,7 +33,7 @@ Again, I quickly rechecked the pictures, even checked the link in the profile pi
 I went again to the last post in the account to recheck it. What could the website be? 
 
 <p align="center">
-  <img src="2021/YogoshaChristmas/img/post.jpg"><br/>
+  <img src="/2021/YogoshaChristmas/img/post.jpg"><br/>
 </p>
 
 "I'm a master of that jutsu", thanks to my little knowledge, I now know that Uchiha Shisui is known as a master of "Body Flicker" technique
@@ -49,7 +49,7 @@ I rushed to the only picture there, had a quick look on the picture incase there
 I simply showed the EXIF data for the picture & here we go!
 
 <p align="center">
-  <img src="2021/YogoshaChristmas/img/flag.jpg"><br/>
+  <img src="/2021/YogoshaChristmas/img/flag.jpg"><br/>
 </p>
 
 Flag: Yogosha{Shisui_H4s_G00d_ViSion}<br/>
@@ -145,7 +145,7 @@ Now, we head back to Burp Suite, we take a POST request from the history to the 
 And we got a hit!
 
 <p align="center">
-  <img src="2021/YogoshaChristmas/img/BurpHit.jpg"><br/>
+  <img src="/2021/YogoshaChristmas/img/BurpHit.jpg"><br/>
 </p>
 
 Looking at the response we got, here is `guinjutsu.php` content:
@@ -202,7 +202,7 @@ After few researches, I landed on this PDF which was used in somekind of a prese
 What I found interesting is the following
 
 <p align="center">
-  <img src="2021/YogoshaChristmas/img/PHPParse.png"><br/>
+  <img src="/2021/YogoshaChristmas/img/PHPParse.png"><br/>
 </p>
 
 In our case, we are not using `readfile`, so how does this `file_get_contents` function behave if we give it some weird url? We can try using an invalid scheme for the url 
