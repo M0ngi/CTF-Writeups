@@ -507,6 +507,8 @@ After reaching this point, I asked myself, Now what? I was tired & it was night 
 Looking at the results we got, the IP doesn't look like a random one, the IPs included in the code are local ones but this one isn't.<br/>
 A quick nmap scan showed that port 22 & port 1337 are open & running an SSH service, the first one refused connection & the 2nd (1337) connected. Right upon connecting, we use the username & password we found and get our flag!
 
+<br/>
+
 <p align="center">
   <img src="/2021/YogoshaChristmas/img/Flag3.png"><br/>
 </p>
