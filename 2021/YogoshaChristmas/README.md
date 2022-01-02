@@ -5,6 +5,7 @@ The CTF consists of 5 consecutive challenges, based on a Naruto story.
 I've joined the CTF the 26th of December & played till the 30th. At the end of the CTF I've ranked 20.
 
 <br/>
+<hr/>
 
 * ### Welcome Christmas (OSINT):
 
@@ -499,6 +500,7 @@ Might take few seconds to run but we still get our results:
   <img src="/2021/YogoshaChristmas/img/NoSQLInjResults.png"><br/>
 </p>
 
+
 After reaching this point, I asked myself, Now what? I was tired & it was night so I went to take a rest & come back tomorrow<br/>
 Looking at the results we got, the IP doesn't look like a random one, the IPs included in the code are local ones but this one isn't.<br/>
 A quick nmap scan showed that port 22 & port 1337 are open & running an SSH service, the first one refused connection & the 2nd (1337) connected. Right upon connecting, we use the username & password we found and get our flag!
@@ -509,5 +511,118 @@ A quick nmap scan showed that port 22 & port 1337 are open & running an SSH serv
   <img src="/2021/YogoshaChristmas/img/Flag3.png"><br/>
 </p>
 
+```json
+{
+  "username":"shisuiedo", 
+  "password":"YogoshaxShisui", 
+  "IP":"52.2.9.67
+}
+```
+
 * ### Uchiha As A Service
-WIP
+
+Now what do we have? we are connected to a machine via SSH as `user1`, when we check the files in the user's home, we find a `secret.txt` file but we can see that we do not have permission to read it. 
+
+<p align="center">
+  <img src="/2021/YogoshaChristmas/img/Secret.jpg"><br/>
+</p>
+
+We'll need either the `root` privileges or, we can use the `user-privileged` account to gain read access. As a start, I tried to switch to `user-privileged` account using `su user-privileged`, tried an empty password & `YogoshaxShisui` but both gave no results. A privilege escalation might be required to solve this challenge I see... <br/>
+I'm not familiar with such attacks & I'm still stepping into linux so I do not have that much of a knowledge about this. That's why this challenge took me a long while, so, where do I begin? I had to start digging around in google in order to gain a little knowledge, so as a start I checked the environment variables looking for a lead. Apparently we have php installed, we can see the configuration path of it.
+
+```
+HOSTNAME=5fb19dd2339e
+PHP_VERSION=7.4.27
+PHP_INI_DIR=/usr/local/etc/php
+PHP_LDFLAGS=-Wl,-O1 -pie
+PWD=/home/user1
+HOME=/home/user1/
+PHP_SHA256=3f8b937310f155822752229c2c2feb8cc2621e25a728e7b94d0d74c128c43d0c
+PHPIZE_DEPS=autoconf            dpkg-dev                file            g++             gcc             libc-devmake            pkg-config              re2c
+PHP_URL=https://www.php.net/distributions/php-7.4.27.tar.xz
+PHP_CFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+PHP_ASC_URL=https://www.php.net/distributions/php-7.4.27.tar.xz.asc
+PHP_CPPFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+```
+
+We might be looking for something related to a PHP exploitation here, digging more into this, I checked `sudo -l` in order to know what access I might have.
+
+```
+user1@5fb19dd2339e:/home/user1$ sudo -l
+Matching Defaults entries for user1 on 5fb19dd2339e:
+    mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    env_keep+="HOSTNAME KAHLA HELL PHPRC HTTP SHELL"
+
+User user1 may run the following commands on 5fb19dd2339e:
+    (user-privileged) NOPASSWD: /usr/local/bin/php /dev/null
+```
+
+We can see that we can run PHP as `user-privileged` but we are stuck with the `/dev/null` part, we cannot pass any arguments to php. We need to find a way to somehow escape this restriction to get our shell using PHP, the `env_keep+="HOSTNAME KAHLA HELL PHPRC HTTP SHELL"` part will be usefull later on but at the begining, I had no clue what that even meant.
+
+So I ended up searching for any known exploits for the given version of PHP, I even ended up digging for a Kernel exploit... Basically, I spent a whole day digging around for any kind of exploitation that might help with no results. At night, I already had enough & I needed to rest.
+
+A new day, 30th of December, back to googling again. I re-checked the `sudo -l` response & decided to try to make use of the `env_keep` line, I didn't know what it meant but I felt as if it was a hint thrown there (\**Cough*\*, PHPRC HTTP SHELL), So I started looking for something else.
+
+After a couple of hours digging around, I landed on this [blog](https://www.elttam.com/blog/env/). What we are looking for is PHP, Quoting from the blog:
+
+```
+If you run ltrace -e getenv php /dev/null you will find PHP uses the PHPRC environment variable. The environment variable is used when attempting to find and load the configuration file php.ini.
+```
+
+After reading this, I thought, Can we make use of this? I checked as a start the exploitation example given in the blog then I went directly to PHP documentation. In the given example, I noticed that the exploit is setting few variables in the configuration file to be loaded, one of them is `auto_prepend_file`. Looking for that up in the documentation ( [Ref](https://www.php.net/manual/en/ini.core.php#ini.auto-prepend-file) ) gave me the following:
+
+```
+Specifies the name of a file that is automatically parsed before the main file. The file is included as if it was called with the require function, so include_path is used.
+```
+
+Interesting, so we can set a PHP file to be executed before anything else starts. Let's head back to our terminal. We setup our exploit's files as a start.
+
+<p align="center">
+  <img src="/2021/YogoshaChristmas/img/PHPRCExp.jpg"><br/>
+</p>
+
+Then we run PHP as `user-privileged`
+
+<p align="center">
+  <img src="/2021/YogoshaChristmas/img/Flag4.jpg"><br/>
+</p>
+
+And we got our flag & we got our challenge 5.
+
+```
+Flag=Yogosha{Uchiha_As_a_Service_Is_N0t_SecUr3}
+Repo=https://github.com/shisuiYogo/killer
+Token=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
+```
+
+Writing about this challenge feels way easier than actually solving it, damn.
+
+* ### Final Beast
+
+I didn't actually solve this challenge since I can't afford to spend an other day searching & digging around honestly but I would've surely done that if I had time.
+I still gave it a little bit of thinking, I'll be sharing what I had in mind.
+
+So, what do we have now? A github repo with a token, So I bet this'll be a private repository. Let's clone it
+
+```
+git clone https://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:x-oauth-basic@github.com/shisuiYogo/killer
+```
+
+We get an other NodeJS project. We quickly check the files & we'll be able to locate the Beast's IP in the `docker-compose.yml` file:<br/>
+`#Deploy it on http://54.157.87.12 please everything is good so far`
+
+We quickly check the src folder, we can see a `flag.txt` file. That'll be our goal I see, let's check now our `index.js` file. ( [Ref](/2021/YogoshaChristmas/files/index2.js) )<br/>
+The first thing I noticed in the code is the `merge` function, apparently we'll be looking for a prototype pollution exploit? We see that there are checks on `isAdmin` & `username` in the session. When we try to open the website, it shows that we are already logged in? Logging out doesn't work either. Trying to access the `guinjutsu` using curl appears to be validating the checks too? 
+
+Digging further into the code, I got the thought that we'll have to bypass the prototype pollution check in order to inject a `includes` function in order to bypass the filename check `if (filename.includes("../")){ return res.send("No No Sorry"); }`.
+
+I didn't continue any further, I'll be looking forward to figure out how to exploit such a code but now, I'll have to prepare for my exams, sadly.
+
+<br/>
+<hr/>
+
+## Conclusion
+
+Participating in such a CTF was awesome. I enjoyed the theme & how the challenges were linked. I spent days searching without even realizing it, I learnt a lot of stuff thanks to this CTF. I would like to give a special thanks to the author of these challenges, Ahmed Belkahla, for both making such a CTF & for providing support in the discord server till the end of the event. 
+
+I'll be looking forward to participate in the coming CTFs.
