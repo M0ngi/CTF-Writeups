@@ -205,7 +205,7 @@ After few researches, I landed on this PDF which was used in somekind of a prese
 What I found interesting is the following
 
 <p align="center">
-  <img src="/2021/YogoshaChristmas/img/PHPParse.png"><br/>
+  <img src="/2021/YogoshaChristmas/img/PHPParse.png" height=250 width=450><br/>
 </p>
 
 In our case, we are not using `readfile`, so how does this `file_get_contents` function behave if we give it some weird url? We can try using an invalid scheme for the url 
