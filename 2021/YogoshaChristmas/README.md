@@ -2,7 +2,7 @@
 
 The Christmas Challenge, started the 25th of December at 19:00 UTC and ended the 31st of December at 19:00 UTC, is a CTF hosted by Yogosha Team.
 The CTF consists of 5 consecutive challenges, based on a Naruto story.
-I've joined the CTF the 26th of December & played till the 30th. At the end of the CTF I've ranked 20 out of 169 participants.
+I've joined the CTF the 26th of December & played till the 30th. At the end of the CTF I've ranked 20 out of more than 300 participants.
 
 <br/>
 <hr/>
