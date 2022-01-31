@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  web:
+    image: nginx
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 80:80
+  api:
+    build:
+      context: ./src
+      dockerfile: ./Dockerfile
+    environment:
+      FLAG: "Securinets{REDACTED}"
+    restart: always
+
