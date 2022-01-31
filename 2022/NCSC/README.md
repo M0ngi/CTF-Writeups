@@ -242,3 +242,36 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     As simple as that, we get our flag: `Securinets{PeehPee_1s_AlWAYs_H3r3}`
 
   #### 4. weird php
+    For this challenge, we get our source code:
+    <details>
+    <summary>Show</summary>
+
+    ```php
+    <?php
+      highlight_file(__FILE__);
+      include ("secret.php");
+
+      if (isset($_GET['a'])&&isset($_GET['b'])&&isset($_GET['c'])) {
+          $array = json_decode($_GET['a']);
+          if ($array->key == SECRET) {
+              if ( ($_GET['b'] !== $_GET['c']) && (md5($_GET['b']) === md5($_GET['c']) ) ) {
+                  echo FLAG;
+              }else {
+                  echo "👍👍👍👍👍👍👍👍👍";
+              }
+          } else {
+              echo "Try harder bb :)";
+          }
+      }
+      ?> 
+    ```
+    </details>
+      
+    We have 3 parameters, `a`, `b` & `c`. We can see that `a` is a JSON that gets parsed by `json_decode`. Also, we have a loose comparison on the `key` value in `a` with `SECRET`, then we get a check on `b` & `c`. 
+      
+    Starting with the first check, we can use `0` for the `key` value & PHP will evaluate that as true [Ref to Type Juggling](https://owasp.org/www-pdf-archive/PHPMagicTricks-TypeJuggling.pdf), If we try `a={"key":0}&b=&c=` we'll pass the first check.
+      
+    Second, we compare `b` & `c` (strict comparison) therefor, both of their types must match. Also, their MD5 hash must be equal. We can abuse the `md5` function by sending `b` & `c` as an array, which will return null for both & throw a warning.
+      
+    Finally, we can use the following parameters `a={"key":0}&b[]=a&c[]=b` & get our flag: ` Securinets{Th1S_1s_t00_w3iRd!!!}`
+    
