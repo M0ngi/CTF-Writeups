@@ -352,7 +352,7 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
 * ### Forensics
   #### 1.  Attack01
     
-    We didn't solve this challenge because we had the last part of the flag missing but it's worth to mention this one. We get a .pcap file & we were told that we need to track an attacker. The flag contained 3 parts:
+    We didn't submit this challenge because we had the last part of the flag missing but it's worth to mention this one. We get a .pcap file & we were told that we need to track an attacker. The flag contained 3 parts:
     
     ```
     1- Country and vpn company used?  country:vpncompany:ipaddress
@@ -389,8 +389,12 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     
     We get the binary name! `hickityhackityOWO.exe`
       
-    And that was all, we couldn't find the last detail.
-    
+    During the CTF, we couldn't find the last one but after getting a rest, here is the final part:
+      
+    <p align="center">
+      <img src="/2022/NCSC/img/attack01_4.png"><br/>
+    </p>
+         
 * ### Misc
   #### 1. Jail
     In this challenge, we were given an ssh command to connect to a server, we were given a limited shell, we only had these characters authorized: `atlfsc$IFS?`
