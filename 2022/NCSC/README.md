@@ -175,3 +175,30 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
       <img src="/2022/NCSC/img/webpingyflag.png"><br/>
     </p>
       
+  #### 2.  Welcome To Web Universe
+    
+    For this challenge, we get a zip with the source code [Link](/2022/NCSC/Welcome%20To%20Web%20Universe)
+
+    And a link to an empty page that contains `Everything is good afaik`.
+      
+    Looking at the source code, we know that we have a flask web server, if we examine the [main.py](/2022/NCSC/Welcome%20To%20Web%20Universe/src/main.py) we see that we have 2 routes, `/v1/status` & `/flag`, we'll be aiming for the flag route. If we check the link we got, we can see that we are in `/leetstatus`, this looks weird.
+      
+    Digging more into the files given, if we check the configuration file located in [nginx](/2022/NCSC/Welcome%20To%20Web%20Universe/nginx), we find this configuration
+    
+    ```config
+    server {
+      listen 80;
+      server_name welcome.task;
+
+      location /leet {
+        proxy_pass http://api:5000/v1/;
+      }
+
+      access_log off;
+      error_log /var/log/nginx/error.log error;
+    }
+    ```
+      
+    I don't have any knowledge about this kind of servers but looking at the `location` section, we can be redirecting `/leet` to our api's route `/v1/`. As if we are saying that `/leet` is replaced by `/v1/`, which makes sense because our current route `/leetstatus` will become `/v1/status` ! Now we want to navigate to our `/flag` route, we can use `/leet../flag` which will be transformed into `/flag` & we get our flag: 
+      
+    `Securinets{Nginx_Is_NoT_ThaT_GooD_AftER_All}`
