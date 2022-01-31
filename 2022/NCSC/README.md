@@ -133,3 +133,45 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     </details>
 
     And our flag is `Securinets{d4ce75b4a536228bfc8371bfba2fdd45}`
+
+* ### Web
+  #### 1.  Broken Pingyy 
+    For this challenge, we get the source code:
+    <details>
+    <summary>Show</summary>
+
+    ```python
+    <?php
+    if(isset($_POST['ip'])){
+      $cmd=$_POST['ip'];
+      $clean=escapeshellarg($cmd);
+      if($output = shell_exec("bash -c 'ping -c1 -w3 $clean" ))
+        echo "<pre>$output</pre>";
+      else
+        echo "an error has occurred !";
+    }
+    ?>
+    ```
+    </details>
+
+    And a link to this page:
+
+    <p align="center">
+      <img src="/2022/NCSC/img/webpingy.png"><br/>
+    </p>
+
+    If we use `www.google.com` as an input, we'll get ` an error has occurred ! `, Let's have a look at the code.
+
+    As a start, we notice that we have a missing `'` at the end of `shell_exec("bash -c 'ping -c1 -w3 $clean" )` which caused our error. Also we are using `escapeshellarg`, a quick lookup in php documentation gives the following: (Ref)[https://www.php.net/manual/en/function.escapeshellarg.php]
+
+    ```
+    escapeshellarg() adds single quotes around a string and quotes/escapes any existing single quotes
+    ```
+    which means that our `$clean` variable should have a closing quote! Let's visualize this with an example, if we use `payload` as an input, saved in `$cmd`, after `escapeshellarg` we should have `$clean` equal to `'payload'` which means, `shell_exec` will be executed with `bash -c 'ping -c1 -w3 'payload'`. Therefor, if we escape the last quote & start our payload with a `;`, we should have `bash -c 'ping -c1 -w3 ';payload\'`. We'll be able to inject shell commands in our payload but we'll have to make use of the last quote to avoid getting an error, we can include an `;echo ` at the end of our payload to simply show that quote & avoid any errors. 
+      
+      Our final payload should look like this: `;cmd;echo \` which will result in executing `cmd` & that's our shell! Now we can try to get the content of `/flag` using `;cat /flag;echo \` as a payload & we get our flag!
+
+    <p align="center">
+      <img src="/2022/NCSC/img/webpingyflag.png"><br/>
+    </p>
+      
