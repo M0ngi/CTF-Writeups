@@ -140,7 +140,7 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     <details>
     <summary>Show</summary>
 
-    ```python
+    ```php
     <?php
     if(isset($_POST['ip'])){
       $cmd=$_POST['ip'];
@@ -202,3 +202,43 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     I don't have any knowledge about this kind of servers but looking at the `location` section, we can be redirecting `/leet` to our api's route `/v1/`. As if we are saying that `/leet` is replaced by `/v1/`, which makes sense because our current route `/leetstatus` will become `/v1/status` ! Now we want to navigate to our `/flag` route, we can use `/leet../flag` which will be transformed into `/flag` & we get our flag: 
       
     `Securinets{Nginx_Is_NoT_ThaT_GooD_AftER_All}`
+
+  #### 3. Peehpee
+    
+    For this challenge, we get our source code:
+    <details>
+    <summary>Show</summary>
+
+    ```php
+    <?php
+      //Show Page code source
+      highlight_file(__FILE__);
+      require "secret.php";
+      if(isset($_GET["__"])&&isset($_GET["_"])){
+        $x=$_GET["__"];
+        $inp=preg_replace("/[^A-Za-z0-9$]/","",$_GET["_"]);
+        if($inp==="Kahla"){
+          die("Hacking Attempt detected");
+        }
+        else{
+          if(eval("return $inp=".$inp.";")==="Kahla"){
+              echo $flag;
+          }
+          else{
+              die("Pretty Close maybe ?");
+          }
+        }
+      }
+    ?>
+    ```
+    </details>
+    
+    We have 2 parameters, `_` & `__`, passed via GET request. We are saving `__` into `$x` & then we see somekind of a filter applied on `_`, allowing only alphabet characters, digits & the dollar sign `$`. After replacing unauthorized characters, we store that in `$inp`.
+      
+    Then we check `$inp` value, if equal to "Kahla" then we fail, else we have an `eval` which will change `$inp` value to whatever `$inp` contains, concatenated as a string. If the value of `$inp` is "Kahla" after executing `eval`, we'll get our flag.
+      
+    Since no check on `__` is done, we can pass `Kahla` in it & it'll be saved in `$x` & since we'll be setting `$inp` to whatever value it contains, we can pass `$x` (The $ is authorized) & it'll evaluate as `$inp = $x`. 
+      
+    As simple as that, we get our flag: `Securinets{PeehPee_1s_AlWAYs_H3r3}`
+
+  #### 4. weird php
