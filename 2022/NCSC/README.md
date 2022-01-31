@@ -169,7 +169,7 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     ```
     which means that our `$clean` variable should have a closing quote! Let's visualize this with an example, if we use `payload` as an input, saved in `$cmd`, after `escapeshellarg` we should have `$clean` equal to `'payload'` which means, `shell_exec` will be executed with `bash -c 'ping -c1 -w3 'payload'`. Therefor, if we escape the last quote & start our payload with a `;`, we should have `bash -c 'ping -c1 -w3 ';payload\'`. We'll be able to inject shell commands in our payload but we'll have to make use of the last quote to avoid getting an error, we can include an `;echo ` at the end of our payload to simply show that quote & avoid any errors. 
       
-      Our final payload should look like this: `;cmd;echo \` which will result in executing `cmd` & that's our shell! Now we can try to get the content of `/flag` using `;cat /flag;echo \` as a payload & we get our flag!
+    Our final payload should look like this: `;cmd;echo \` which will result in executing `cmd` & that's our shell! Now we can try to get the content of `/flag` using `;cat /flag;echo \` as a payload & we get our flag!
 
     <p align="center">
       <img src="/2022/NCSC/img/webpingyflag.png"><br/>
