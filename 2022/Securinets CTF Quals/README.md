@@ -129,4 +129,40 @@ And we get our flag: `Securinets{5d91d2e01b854fd457c1d8b592a19b38af6b4a33c6362b7
 
 * ### shellcraft
 
-WIP
+For this one, we were given a binary file. Considering the name, we'll probably be sending a shell. As a start, we check the binary's security & have a look throught Ghidra.
+
+<p align="center">
+  <img src="/2022/Securinets%20CTF%20Quals/imgs/sec2.png"><img src="/2022/Securinets%20CTF%20Quals/imgs/ghidra2.png"><br/>
+</p>
+<br />
+
+Intersting... It's not just an executable stack, but we got our call ready since the begining. But there is this `sandbox` function, digging more into it gives us the following C code:
+
+```C
+  local_18 = seccomp_init(0x7fff0000);
+  local_38[0] = 2;
+  local_38[1] = 0x38;
+  local_38[2] = 0x39;
+  local_38[3] = 0x3a;
+  local_38[4] = 0x3b;
+  local_38[5] = 0x65;
+  local_38[6] = 0x142;
+  for (local_c = 0; local_c < 7; local_c = local_c + 1) {
+    seccomp_rule_add(local_18,0,local_38[(int)local_c],0);
+  }
+  seccomp_load(local_18);
+```
+
+So it's google time! Looking for this `seccomp_rule_add` landed me on this [description](https://man7.org/linux/man-pages/man3/seccomp_rule_add.3.html#DESCRIPTION). As we can see, this is somekind of a syscall filtering. Let's jump into GDB for more debuging... Open binary, setup a breakpoint at main+77, before we start executing our shell.
+
+<p align="center">
+  <img src="/2022/Securinets%20CTF%20Quals/imgs/gdb2.png"><br/>
+</p>
+<br />
+
+We take a shellcode ([Shell storm](http://shell-storm.org/)) & plug it into our binary's input then watch what happens.<br/>
+We hit the breakpoint (`0x55555555530d <main+77>:	call   rdx`) & we step into the execution.
+
+So in my case, the shell changed `rax` value to `0x142` which is `stub_execveat` code. If you're unfamiliar with the `syscall` instruction, basically it's a way for the binary to make **system calls** to the kernel to execute a specific function. Each function have it's own code ([SysCall functions list](http://shell-storm.org/shellcode/files/linux-4.7-syscalls-x64.html)), we use this code to identify which function we would like to call. We simply change the `rax` register to the function code we're seeking & set up our parameters for the function call then we use `syscall` instruction to execute it. Back to the topic, after changing the `rax` value & when we are about to make the system call, we get a crash: `Program terminated with signal SIGSYS, Bad system call.`
+
+So as expected, we can see that the `0x142` is included in our `sandbox` code so, as we expected, this is a system call filter. 
