@@ -165,7 +165,7 @@ We hit the breakpoint (`0x55555555530d <main+77>:	call   rdx`) & we step into th
 
 So in my case, the shell changed `rax` value to `0x142` which is `stub_execveat` code. If you're unfamiliar with the `syscall` instruction, basically it's a way for the binary to make **system calls** to the kernel to execute a specific function. Each function have it's own code ([SysCall functions list](http://shell-storm.org/shellcode/files/linux-4.7-syscalls-x64.html)), we use this code to identify which function we would like to call. We simply change the `rax` register to the function code we're seeking & set up our parameters for the function call then we use `syscall` instruction to execute it. Back to the topic, after changing the `rax` value & when we are about to make the system call, we get a crash: `Program terminated with signal SIGSYS, Bad system call.`
 
-So as expected, we can see that the `0x142` is included in our `sandbox` code so, as we expected, this is a system call filter. 
+So as expected, we can see that the `0x142` is included in our `sandbox` code so, as we mentioned, this is a system call filter. 
 
 So we'll need to find an other way to reach our flag without using the blacklisted syscalls, we can use `seccomp-tools` to get a better view for the blacklisted calls:
 
