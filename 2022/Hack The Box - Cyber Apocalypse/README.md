@@ -48,7 +48,7 @@ A CTF Hosted by Hack The Box which lasted 5 days. I ranked 245th out of more tha
 For this challenge we were given a website with a `/login` & `/signup` pages. Upon signing up, we get the following page:
 
 <p align="center">
-    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/kryptossupport_web1.png'>
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/report_web1.png'>
 </p>
 
 So, this should be a basic XSS since we didn't even get a source code. Going for a basic payload:
@@ -59,14 +59,23 @@ So, this should be a basic XSS since we didn't even get a source code. Going for
 </script>
 ```
 
-Gives us the moderator's cookies! Having a look on them, we see a session cookie. We add the session & we visit `/settings`. The magic happens & we are logged in. We see that we have two fields used for changing the current user password & there is no current password confirmation but there is no flag yet? We apparently need to access something higher, maybe an admin account? So we try the change password functionality & we have a look on the HTTP Request. We see that we are sending the UID in the request body:
+Gives us the moderator's cookies! Having a look on them, we see a session cookie.
 
-```json
-{
-    "password": "hellothere",
-    "uid": "100"
-}
-```
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/session_web1.png'>
+</p>
+
+We add the session & we visit `/settings`. The magic happens & we are logged in. 
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/settings_web1.png'>
+</p>
+
+There is no flag yet? We apparently need to access something higher, maybe an admin account? So we try the change password functionality & we have a look on the HTTP Request. We see that we are sending the UID in the request body:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/request_web1.png'>
+</p>
 
 Trying to find the admin ID, we change the UID to 1 & send our HTTP Request. We get a confirmation from the server:
 
@@ -76,7 +85,11 @@ Trying to find the admin ID, we change the UID to 1 & send our HTTP Request. We 
 }
 ```
 
-We login as the admin now & we get our flag: `HTB{x55_4nd_id0rs_ar3_fun!!}`
+We login as the admin now & we get our flag: 
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/flag_web1.png'>
+</p>
 
 2. <p name="web2">BlinkerFluids (★☆☆☆)</p>
 
