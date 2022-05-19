@@ -28,23 +28,23 @@ A CTF Hosted by Hack The Box which lasted 5 days. I ranked 245th out of more tha
 ------------
 
 ### Pwn
-1. <p name="pwn1">Space Pirate: Entrypoint</p>
+1. <p name="pwn1">Space Pirate: Entrypoint (★☆☆☆)</p>
 
-2. <p name="pwn2">Space Pirate: Going Deeper</p>
+2. <p name="pwn2">Space Pirate: Going Deeper (★☆☆☆)</p>
 
-3. <p name="pwn3">Space pirate: Retribution</p>
+3. <p name="pwn3">Space pirate: Retribution (★☆☆☆)</p>
 
-4. <p name="pwn4">Vault-breaker</p>
+4. <p name="pwn4">Vault-breaker (★☆☆☆)</p>
 
-5. <p name="pwn5">Fleet Management</p>
+5. <p name="pwn5">Fleet Management (★☆☆☆)</p>
 
-6. <p name="pwn6">Hellbound</p>
+6. <p name="pwn6">Hellbound (★★☆☆)</p>
 
-7. <p name="pwn7">Trick or Deal</p>
+7. <p name="pwn7">Trick or Deal (★★☆☆)</p>
 
 
 ### Web
-1. <p name="web1">Kryptos Support</p>
+1. <p name="web1">Kryptos Support (★☆☆☆)</p>
 For this challenge we were given a website with a `/login` & `/signup` pages. Upon signing up, we get the following page:
 
 <p align="center">
@@ -78,23 +78,23 @@ Trying to find the admin ID, we change the UID to 1 & send our HTTP Request. We 
 
 We login as the admin now & we get our flag: `HTB{x55_4nd_id0rs_ar3_fun!!}`
 
-2. <p name="web2">BlinkerFluids</p>
+2. <p name="web2">BlinkerFluids (★☆☆☆)</p>
 
-3. <p name="web3">Amidst Us</p>
+3. <p name="web3">Amidst Us (★☆☆☆)</p>
 
-4. <p name="web4">Intergalactic Post</p>
+4. <p name="web4">Intergalactic Post (★☆☆☆)</p>
 
-5. <p name="web5">Acnologia Portal</p>
+5. <p name="web5">Acnologia Portal (★★☆☆)</p>
 
-6. <p name="web6">Red Island</p>
+6. <p name="web6">Red Island (★★☆☆)</p>
 
-7. <p name="web7">Mutation Lab</p>
+7. <p name="web7">Mutation Lab (★★☆☆)</p>
 
 ### Rev
-1. <p name="rev1">WIDE</p>
+1. <p name="rev1">WIDE (★☆☆☆)</p>
 
 ### Misc
-1. <p name="misc1">Compressor</p>
+1. <p name="misc1">Compressor (★☆☆☆)</p>
 
 
 WIP
