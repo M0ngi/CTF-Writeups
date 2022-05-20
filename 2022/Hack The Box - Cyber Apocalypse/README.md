@@ -141,7 +141,7 @@ We have access to `/static` route which means, we can use it to write our comman
 <br/>
 
 3. <p name="web3">Amidst Us (★☆☆☆)</p>
-For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/)). We get the following page
+For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/)). We get the following page:
 
 <p align="center">
     <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web3.png'>
@@ -149,7 +149,7 @@ For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20
 
 We click on the picture in the center & it'll prompt us to select a file to upload. Upon selecting a picture, we see that the white areas become transparent, so this is somekind of a picture converter. Let's have a look on the source code for this.
 
-As a start, we notice that we are running a Flask app. We head to the [application/blueprints/routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) to check for routes & we get only 1 API route, `alphafy` used for image processing. We are using a helper method defined in [application/utils.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py). I've edited the source a little to help me debug the payload. The interesting part is the following:
+As a start, we notice that we are running a Flask app. We head to the [application/blueprints/routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) to check for routes & we get only 1 API route, `alphafy` used for image processing. We are using a helper method defined in [application/utils.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/utils.py). I've edited the source a little to help me debug the payload. The interesting part is the following:
 
 ```python
 def make_alpha(data):
@@ -220,9 +220,9 @@ color = data.get('background', [255,255,255])
 
 & since there is no validation, we can inject anything into the `color` array!
 
-Before that, let's try to gather a bit more information about this method. A quick google search would land us on a `CVE-2022-22817` & we get the following:
+Before that, let's try to gather a bit more information about this method. A quick google search would land us on a `CVE-2022-22817` & we get the following ([Source](https://vuldb.com/?id.189840)):
 
-`PIL.ImageMath.eval in Pillow before 9.0.0 allows evaluation of arbitrary expressions, such as ones that use the Python exec method.`
+> PIL.ImageMath.eval in Pillow before 9.0.0 allows evaluation of arbitrary expressions, such as ones that use the Python exec method.
 
 Having a quick look at [/requirements.txt](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/requirements.txt), we see that we are using `Pillow 8.4.0` & now, we got our RCE confirmed.
 
