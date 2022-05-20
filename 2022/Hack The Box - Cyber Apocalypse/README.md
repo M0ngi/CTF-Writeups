@@ -93,6 +93,8 @@ We login as the admin now & we get our flag:
     <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/flag_web1.png'>
 </p>
 
+<br/>
+
 2. <p name="web2">BlinkerFluids (★☆☆☆)</p>
 For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_blinkerfluids/)). Looking into the website, we see an invoice list & an option to add a new invoice.
 
@@ -135,6 +137,7 @@ We have access to `/static` route which means, we can use it to write our comman
 ```
 
 & we'll be able to access `/static/flag` route & get our flag: `HTB{bl1nk3r_flu1d_f0r_int3rG4l4c7iC_tr4v3ls}`
+
 <br/>
 
 3. <p name="web3">Amidst Us (★☆☆☆)</p>
