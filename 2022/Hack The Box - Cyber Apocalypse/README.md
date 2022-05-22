@@ -31,6 +31,19 @@ Each writeup include the given source file with a docker setup. I might've added
 
 ### Pwn
 1. <p name="pwn1">Space Pirate: Entrypoint (★☆☆☆)</p>
+We open the binary using Ghidra & check the `check_pass` function:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/check_pass_pwn1.png'>
+</p>
+
+So any password except `0nlyTh30r1g1n4lCr3wM3mb3r5C4nP455` will give us the flag:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/flag_pwn1.png'>
+</p>
+
+<br />
 
 2. <p name="pwn2">Space Pirate: Going Deeper (★☆☆☆)</p>
 
