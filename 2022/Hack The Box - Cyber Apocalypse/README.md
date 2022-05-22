@@ -46,6 +46,28 @@ So any password except `0nlyTh30r1g1n4lCr3wM3mb3r5C4nP455` will give us the flag
 <br />
 
 2. <p name="pwn2">Space Pirate: Going Deeper (★☆☆☆)</p>
+We open the binary using Ghidra & check the `admin_panel` function:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/admin_panel_pwn2.png'>
+</p>
+
+This one checking for `DRAEGER15th30n34nd0nly4dm1n15tr4t0R0fth15sp4c3cr4ft`, some used this password but didn't get the flag & the main reason for it is, when you press enter, you insert a new line character (`\n - HEX: 0a`).
+
+Solver:
+
+```python
+from pwn import *
+
+p = remote('165.227.224.55', 31561)
+
+p.sendline(b'1')
+p.sendline(b'DRAEGER15th30n34nd0nly4dm1n15tr4t0R0fth15sp4c3cr4ft\x00')
+
+p.interactive()
+```
+
+<br />
 
 3. <p name="pwn3">Space pirate: Retribution (★☆☆☆)</p>
 
