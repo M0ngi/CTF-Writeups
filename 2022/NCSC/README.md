@@ -59,7 +59,7 @@ I've participated in the CTF with [Aziz Zribi](https://www.facebook.com/Aziz.Zri
     <img src="/2022/NCSC/img/babyflag.png"><br/>
     </p>
 
-  #### 2. Babypwn
+  #### 2. freedom
     For this challenge, we get our source code:
     <details>
     <summary>Show</summary>
