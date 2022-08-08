@@ -4,6 +4,8 @@ A CTF Organized by Arab Security Consultants - ASC. This is a qualification phas
 
 I played as a member of Soteria Team & together, we secured the first place in this CTF, out of more than 700 teams.
 
+This time, I played a couple of easy Cryptography challenges, Reverse Engineering & Web.
+
 ------------
 
 - [Reverse](#Reverse)
