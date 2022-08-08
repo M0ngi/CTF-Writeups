@@ -40,7 +40,7 @@ Providing a random password for the admin gives the following:
 {"Username":"admin","status":"Invalid username or password"}
 ```
 
-So as a start, we go for a basic SQL Injection. We use `admin' # ` for the username & provide anything for the password field to bypass fields verification. We get a successful login:
+So as a start, we go for a basic SQL Injection. We use `admin' #` for the username & provide anything for the password field to bypass fields verification. We get a successful login:
 
 <p align="center">
     <img src='/2022/ASC%20Wargames%202022%20Quals/img/web_login.png'>
@@ -57,7 +57,7 @@ Going back to the challenge description, it mentioned a weak captcha so we might
 We download a captcha picture ([Ref](/2022/ASC%20Wargames%202022%20Quals/sources/captcha.php.jpeg)) & we check the content of it, starting with `strings`:
 
 <p align="center">
-    <img width='80%' src='/2022/ASC%20Wargames%202022%20Quals/img/captcha_str.png'>
+    <img width='70%' src='/2022/ASC%20Wargames%202022%20Quals/img/captcha_str.png'>
 </p>
 
 We see a double base-64 encoded string at the end of the file, decoding it gives us the captcha key.
