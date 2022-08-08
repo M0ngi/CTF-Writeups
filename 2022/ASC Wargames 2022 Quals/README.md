@@ -34,7 +34,7 @@ We were given the following website:
     <img width="70%" src='/2022/ASC%20Wargames%202022%20Quals/img/web_home.png'>
 </p>
 
-Providing a random username & password gives the following:
+Providing a random password for the admin gives the following:
 
 ```
 {"Username":"admin","status":"Invalid username or password"}
