@@ -15,4 +15,5 @@
 	-  [TheFewChosen CTF 2022 | Rank: 5/941](/README.md#WIP)
 	-  [UACTF CTF 2022 | Rank: 5/431](/README.md#WIP)
 	-  [ASC Wargames 2022 Quals | Rank: 1/700+](/2022/ASC%20Wargames%202022%20Quals)
-    
+    	-  [SHELL CTF 2022 | Rank: 4/1000+](/README.md#WIP)
+	-  [nullcon CTF 2022 | Rank: 20/393](/README.md#WIP)
