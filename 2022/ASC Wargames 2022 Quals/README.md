@@ -19,7 +19,7 @@ This time, I played a couple of easy Cryptography challenges, Reverse Engineerin
 
 ### Reverse
 1. <p name="rev1">Unpacking 101 - Easy</p>
-WIP
+For this one, we were given a packed PE. To avoid the packing, we can run the PE file & using [Process-Dump](https://github.com/glmcdona/Process-Dump) we can dump the unpacked executable & reverse it. The flag is stored in the dumped binary after being XORed with 0x55555555.
 
 <br />
 
