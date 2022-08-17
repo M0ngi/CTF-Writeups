@@ -24,7 +24,98 @@ WIP
 <br />
 
 2. <p name="rev2">PE Anatomy - Medium</p>
-WIP
+So basically this challenge was all about debuging. We were given a binary file & a PE file. Looking as a start at the decompiled code:
+
+```c
+hFile = CreateFileA("Dont_run.bin",0x80000000,1,(LPSECURITY_ATTRIBUTES)0x0,3,0,(HANDLE)0x0);
+...
+pbData = (short *)VirtualAlloc((LPVOID)0x0,(ulonglong)DVar4,0x3000,4);
+BVar5 = ReadFile(hFile,pbData,DVar4,lpNumberOfBytesRead,(LPOVERLAPPED)0x0);
+```
+
+We start by reading the content of the binary file, after that, we can see a lot of nested if statements, each verifying a certain condition:
+```c
+  if (*pbData == 0x5a4d) {
+    iVar2 = *(int *)(pbData + 0x1e);
+    if (*(short *)((longlong)pbData + (longlong)iVar2 + 4) == 0x1337) {
+      for (local_f8 = 0; local_f8 != 5; local_f8 = local_f8 + 1) {
+      }
+      if (*(int *)((longlong)pbData + (longlong)iVar2 + 8) == 0x65617379) {
+        for (local_128 = 0; local_128 != 5; local_128 = local_128 + 1) {
+        }
+        if (*(int *)((longlong)pbData + (longlong)iVar2 + 0xc) == 0x6767) {
+          for (local_120 = 0; local_120 != 5; local_120 = local_120 + 1) {
+          }
+          if (*(int *)((longlong)pbData + (longlong)iVar2 + 0x10) == 0x657a) {
+            for (local_118 = 0; local_118 != 5; local_118 = local_118 + 1) {
+            }
+            if (*(short *)((longlong)pbData + (longlong)iVar2 + 0x16) == 0x6e6f) {
+              for (local_110 = 0; local_110 != 5; local_110 = local_110 + 1) {
+              }
+	      ...
+```
+
+We can ignore the for loops after the if statements. At the end of the nested if checks, we can see the binary calculating our flag with a hash function, which should be the hash of the binary file.
+
+Going through the conditions, we see that the PE is simply checking for specific indexes in the binary file & comparing their values. We got to verify those checks to get our correct flag.
+
+One way to go with this, we can run the PE with a debuger & dynamically debug the program, find the offsets we are requried to change & make a python script to handle those updates.
+
+Solver:
+
+```python
+with open('Dont_run.bin.bkup', 'rb') as f:
+    data = list(f.read())
+
+def Hex(l):
+    return b''.join([bytes.fromhex(hex(x)[2:].rjust(2, '0')) for x in l])[::-1].hex()
+
+def lilInd(x, size):
+    return list(bytes.fromhex(hex(x)[2:].rjust(size*2, '0'))[::-1])
+
+print(Hex(data[:2]))
+
+data[100+30+2:100+30+2+2] = lilInd(0x1337, 2)
+print(Hex(data[100+30+2:100+30+2+2]))
+
+data[136:140] = lilInd(0x65617379, 4)
+print(Hex(data[136:140]))
+
+data[98+30+0xc:98+30+0xc+4] = lilInd(0x6767, 4)
+print(Hex(data[98+30+0xc:98+30+0xc+4]))
+
+data[98+30+0xc:98+30+0xc+4] = lilInd(0x6767, 4)
+print(Hex(data[98+30+0xc:98+30+0xc+4]))
+
+data[98+30+0x10:98+30+0x10+4] = lilInd(0x657a, 4)
+print(Hex(data[98+30+0x10:98+30+0x10+4]))
+
+data[98+30+0x16:98+30+0x16+2] = lilInd(0x6e6f, 2)
+print(Hex(data[98+30+0x16:98+30+0x16+2]))
+
+data[98+30+0x18:98+30+0x18+2] = lilInd(0x9999, 2)
+print(Hex(data[98+30+0x18:98+30+0x18+2]))
+
+data[98+30+0x28:98+30+0x28+4] = lilInd(0x6969, 4)
+print(Hex(data[98+30+0x28:98+30+0x28+4]))
+
+data[98+30+0x30:98+30+0x30+8] = lilInd(0x4142434461626364, 8)
+print(Hex(data[98+30+0x30:98+30+0x30+8]))
+
+data[0x188:0x188+5] = lilInd(0x6161616161, 5)
+print(Hex(data[0x188:0x188+5]))
+
+data[0x1b0:5+0x1b0] = lilInd(0x6262626262, 5)
+print(Hex(data[0x1b0:5+0x1b0]))
+
+data[0x1d8:0x1d8+6] = lilInd(0x64697a656f6a, 6)
+print(Hex(data[0x1d8:0x1d8+6]))
+
+data = b''.join([bytes.fromhex(hex(x)[2:].rjust(2, '0')) for x in data])
+
+with open('out', 'wb') as f:
+    f.write(data)
+```
 
 <br/>
 
