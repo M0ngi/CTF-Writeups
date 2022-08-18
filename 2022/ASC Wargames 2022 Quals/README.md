@@ -24,7 +24,7 @@ For this one, we were given a packed PE. To avoid the packing, we can run the PE
 Solver:
 
 ```python
-local_74 = [0 for _ in range(15)]
+local_74 = [0 for _ in range(14)]
 
 xor_c = 0x55555555
 
@@ -42,7 +42,6 @@ local_74[10] = 0x360a2720
 local_74[11] = 0x36263b65
 local_74[12] = 0x363b6664
 local_74[13] = 0x00002866
-local_74[14] = 0x00000000
 
 flag = b""
 for c in local_74:
