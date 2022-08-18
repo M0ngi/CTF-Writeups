@@ -21,6 +21,36 @@ This time, I played a couple of easy Cryptography challenges, Reverse Engineerin
 1. <p name="rev1">Unpacking 101 - Easy</p>
 For this one, we were given a packed PE. To avoid the packing, we can run the PE file & using [Process-Dump](https://github.com/glmcdona/Process-Dump) we can dump the unpacked executable & reverse it. The flag is stored in the dumped binary after being XORed with 0x55555555.
 
+Solver:
+
+```python
+local_74 = [0 for _ in range(15)]
+
+xor_c = 0x55555555
+
+local_74[0] = 0x2160614
+local_74[1] = 0x61182e12
+local_74[2] = 0x0a640a2c
+local_74[3] = 0x61661936
+local_74[4] = 0x652c0a27
+local_74[5] = 0x260a2720
+local_74[6] = 0x66216119
+local_74[7] = 0x313b610a
+local_74[8] = 0x2564220a
+local_74[9] = 0x652c0a66
+local_74[10] = 0x360a2720
+local_74[11] = 0x36263b65
+local_74[12] = 0x363b6664
+local_74[13] = 0x00002866
+local_74[14] = 0x00000000
+
+flag = b""
+for c in local_74:
+    flag += bytes.fromhex(hex(c^xor_c)[2:])[::-1]
+
+print(flag) # ASCWG{M4y_1_cL34r_y0ur_sL4t3_4nd_w1p3_y0ur_c0nsc13nc3}
+```
+
 <br />
 
 2. <p name="rev2">PE Anatomy - Medium</p>
