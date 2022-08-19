@@ -230,7 +230,7 @@ Running this will result in getting a `statement error`. In the error, we can se
 * Spaces are removed from our input.
 * `OR` is being removed. (Later on, we'll figure out that `AND` is being removed too.)
 
-To bypass this, we can simply use `/**/` to replace space & `OOR` and `AANDND` to bypass the keywords filter (Luckly they are replaced only once).
+To bypass this, we can simply use `/**/` to replace space & `OORR` and `AANDND` to bypass the keywords filter (Luckly they are replaced only once).
 
 We update our `sendPayload` code to the following:
 
