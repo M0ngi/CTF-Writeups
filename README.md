@@ -18,4 +18,4 @@
 	-  [SHELL CTF 2022 | Rank: 4/1000+](/README.md#WIP)
 	-  [nullcon CTF 2022 | Rank: 20/393](/README.md#WIP)
 	-  [WM CTF 2022 | Rank: 23/457](/README.md#WIP)
-	-  [Hacker's Playground 2022 | Rank: 21/730+](/README.md#WIP)
+	-  [Hacker's Playground 2022 | Rank: 21/730+](/2022/Hacker's%20Playground%202022/README.md)
