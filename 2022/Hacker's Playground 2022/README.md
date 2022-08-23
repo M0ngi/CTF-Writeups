@@ -65,9 +65,9 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 
 We are clearly able to write out of bound of `v4` variable, this is our **BOF**. We also have the function `system` used in function `x` therefore we can use this instead of a **ret2libc**.
 
-Checking the security of the binary, we have PIE disabled so we can write our `/bin/sh` into the binary & use it to call `system`. Later on I used `sh` only instead of `/bin/sh`, luckly `/bin` was in the `PATH` variable.
+Checking the security of the binary, we have PIE disabled so we can write our `/bin/sh` into the binary & use it to call `system`. Later on I used `sh` only instead of `/bin/sh`, luckly `/bin` was in the **PATH** variable.
 
-Plan is, write `sh` to a known & writeable address alongside a `system` address to call it with `sh` string. We then stack pivot to that address to make our call & get a shell. Solver:
+Plan is, write `"sh"` to a known & writeable address alongside a `system` address to call it with `sh` string. We then stack pivot to that address to make our call & get a shell. Solver:
 
 ```python
 #!/usr/bin/env python3
