@@ -17,3 +17,4 @@
 	-  [ASC Wargames 2022 Quals | Rank: 1/700+](/2022/ASC%20Wargames%202022%20Quals)
 	-  [SHELL CTF 2022 | Rank: 4/1000+](/README.md#WIP)
 	-  [nullcon CTF 2022 | Rank: 20/393](/README.md#WIP)
+	-  [Hacker's Playground 2022 | Rank: 21/730+](/README.md#WIP)
