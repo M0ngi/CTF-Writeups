@@ -8,12 +8,12 @@ I really enjoyed playing in this CTF & I wished it would be longer. There were s
 
 ------------
 
-- [Pwn](#Pwn)
+- [Pwn](#pwn)
     -  [pppr](#pwn1 "Writeup")
 	-  [riscy](#pwn2 "Writeup")
 
-- [Pwn&Crypto](#Pwn&Crypto)
-    -  [Secure%20Runner%201/2](#securerunner)
+- [Pwn&Crypto](#pwncrypto)
+    -  [Secure Runner 1/2](#securerunner)
 
 ------------
 
@@ -435,4 +435,4 @@ Instead, we have the ability to index a heap address stored in heap & accessible
 
 However, we can write only once! Here comes the crypto part. For the first Runner, we zeroed 4 bytes of N, located at offset `-2704`. For the second Runner, the binary added a check to make sure N isn't changed so for this one, we changed the exponent e.
 
-I didn't go much into the details of the Crypto side since I still have a way to go since I only have the basics of RSA encryption. Hopefully I'll be able to handle this kind of challenges on my own in the future.
+I didn't go much into the details of the Crypto side since I still have a way to go since I only have the basics of RSA encryption. Hopefully I'll be able to handle this kind of challenges on my own in the future.ss
