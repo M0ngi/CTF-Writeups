@@ -15,7 +15,7 @@ I really enjoyed playing in this CTF & I wished it would be longer. There were s
 ------------
 
 ### Pwn
-1. <p name="pwn1">pppr</p>
+1. <p name="pwn1"><b>pppr</b></p>
 
 For this one, we were given a [decompiled source code](/2022/Hacker's%20Playground%202022/sources/decompiled.c) from IDA & a x86 binary. Looking at the source code, we have a function used to read from `stdin`, this should be an equivalent to `fgets`:
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
 <br />
 
-2. <p name="pwn2">riscy</p>
+2. <p name="pwn2"><b>riscy</b></p>
 
 This one was an interesting challenge, we were given a RISC-V binary to pwn it. We got the source & deployment binary with an emulator to run it, feel free to check [here](/2022/Hacker's%20Playground%202022/sources/riscy/).
 
