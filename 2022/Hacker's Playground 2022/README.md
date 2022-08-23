@@ -12,6 +12,9 @@ I really enjoyed playing in this CTF & I wished it would be longer. There were s
     -  [pppr](#pwn1 "Writeup")
 	-  [riscy](#pwn2 "Writeup")
 
+- [Pwn&Crypto](#Pwn&Crypto)
+    -  [Secure%20Runner%201/2](#securerunner)
+
 ------------
 
 ### Pwn
@@ -390,3 +393,46 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+<br>
+
+### Pwn&Crypto
+1. <p name="securerunner"><b>Secure runner 1 & 2</b></p>
+
+For this one, I took care of the pwn part, which involved a format string exploit to zero-out 4 bytes of RSA Encryption values in order to generate a valid signature to run `cat /flag.txt`. My team mate, Yassine Belarbi (**SSONEDE**) took care of the RSA signing part.
+
+Both challenges were the same (Pwn part) only a different offset to write..
+
+Basic information:
+
+For RSA signing, we require an exponent e, 2 **secret** prime numbers, p & q. These values generate our public & private keys: N & d.
+
+```
+N = p*q.
+d = inverse(e, (p-1)*(q-1)).
+```
+
+N & d are used to generate & verify the signatures.
+
+Now the challenge part. We were given a binary that gives us the following services:
+
+<p align="center">
+    <img src="/2022/Hacker's%20Playground%202022/images/secure_runner.png">
+</p>
+
+We have 2 more hidden services, we can see them in IDA/Ghidra.
+
+```
+0. Recalculate N & display the value, doesn't update the actual N used by the signer.
+9999. Format string vuln.
+```
+
+The binary is using a library to generate RSA values since they are very large values for security reasons. This library stores the values in heap. In the format string option, we give an integer which gets added to a heap address, stored in stack. Then we can give a string of 4 characters + null byte which gets passed to a `printf` call as a format parameter.
+
+Examining the stack, due to the length limit, we can leak arguments/values from stack & registers from 1 to 9 since our limit would be `%9$p` is 4 characters therefore, leaking would not help.
+
+Instead, we have the ability to index a heap address stored in heap & accessible to us (Index 7). We can use this address to arbitrary write 4 null bytes to a specific heap address. (Offsets between heap addresses are constant)
+
+However, we can write only once! Here comes the crypto part. For the first Runner, we zeroed 4 bytes of N, located at offset `-2704`. For the second Runner, the binary added a check to make sure N isn't changed so for this one, we changed the exponent e.
+
+I didn't go much into the details of the Crypto side since I still have a way to go since I only have the basics of RSA encryption. Hopefully I'll be able to handle this kind of challenges on my own in the future.
