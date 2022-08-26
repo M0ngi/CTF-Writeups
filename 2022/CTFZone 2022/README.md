@@ -168,10 +168,10 @@ Now the dynamic part, executing the binary & sending an input, we see a **BOF** 
 
 For this one, I spent hours searching for ways to manage to execute a useful ROP chain. Looking at what we currently have:
 
-    - A read gadget to an unknown stack address.
-    - The read gadget can give us control over RAX register since `read` returns the number of bytes it read.
-    - Syscall gadget
-    - We can actually control the address `read` will write into via `pop rbp; ret;` gadget but we don't have any leaks of the stack.
+   - A read gadget to an unknown stack address.
+   - The read gadget can give us control over RAX register since `read` returns the number of bytes it read.
+   - Syscall gadget
+   - We can actually control the address `read` will write into via `pop rbp; ret;` gadget but we don't have any leaks of the stack.
 
 This gives us the following gadgets:
 
