@@ -1,0 +1,5 @@
+#!/usr/bin/env python3.9
+
+from bc_challenge.cli import cli
+
+cli()

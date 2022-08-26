@@ -1,0 +1,229 @@
+# CTF.ZONE 2022 :: Python Bytecode Challenge Guide
+
+## Setup
+
+1. Unzip archive with challenge client. It contains:
+    - `challenge_cli` - main entry point
+    - `bc_challenge` - Python module with challenge code
+
+2. Put your team token (big JWT from organizers) into `client_settings.yaml` under `api.team_token`.
+
+3. Python 3.9.* is required. This is essential part, because your bytecode will be run on that version of Python.
+
+4. Install dependencies: `pip3 install -r requirements.txt`
+
+5. Check `./challenge_cli --help`
+
+
+### Recommended environment for solving this challenge 
+
+1. Install [Docker](https://www.docker.com/get-started/).
+2. Install [VS Code](https://code.visualstudio.com/download).
+3. Install [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
+4. Open folder with challenge code in container:
+    - `Ctlr/Cmd + Shift + P`
+    - `Remote - Containers: Open folder in container`
+    - Choose Python 3.9
+5. Install dependencies and check cli.
+
+
+## Introduction
+
+There are 20 levels in this challenge. Two welcome tasks to get acquainted and 5 series of tasks with flags.
+Successfull solution submission to one task opens access to next task.
+
+Tasks list without names:
+- t0-series - 2 tasks
+- t1-series - 6 tasks - 1 flag - easy-medium
+- t2-series - 4 tasks - 1 flag - easy-medium
+- t3-series - 3 tasks - 1 flag - medium-hard
+- t4-series - 3 tasks - 1 flag - medium
+- t5-series - 2 tasks - 1 flag - medium-hard
+
+Task name may be a hint to solution.
+
+As a solution to task you need to write a `CodePatch` (`bc_challenge.code.model.CodePatch`).
+(Don't worry, there are templates for solutions where `CodePatch` is generated from default Python data structures.)
+Patch consists from opcodes (`CodePatch.opcodes`) and constants (`CodePatch.constants`).
+Each task/level has a `run` function that takes your patch and applies it to `sandbox` function - replaces function bytecode, constants, names and varnames.
+
+There is no distinction between constants (`co_consts`), names (`co_names`) and varnames (`co_varnames`) in `CodePatch`. 
+They are mixed into `CodePatch.constants` to simplify model.
+When you need to place index of constant, name or varname into some opcode, use 0-based index from `CodePatch.constants`.
+(Feel free to search bugs in this mechanics. This can give you solution on some levels) 
+
+The PURPOSE of your `CodePatch` is to return some object that contains `SECRET{...}` in its `repr`esentation.
+
+Secret is NOT a FLAG, but it *may* contain FLAG inside it's encoded body. 
+Reflected secret is processed automatically by `challenge_cli`. You'll see access_codes and flags in the output of `challenge_cli`.
+Please, DO NOT mess with secrets, it will not help you solve tasks - concentrate on task conditions and restrictions.
+
+Secrets can be hidden in three places inside "task-runner-process":
+- in argument of `run` function (only welcome tasks) 
+- in vault - `bc_challenge.namespaces.vault.VAULT` dictionary
+- injected somewhere in source of task (look for `>>> PUT SECRET HERE <<<` or something like that)
+
+This place is defined in task config - in first lines of task file.
+
+
+## How to start solving task?
+
+1. Take one of solution templates from `bc_challenge.solutions.templates`.
+2. Copy it to `bc_challenge.solutions` with the same name as task from `bc_challenge.tasks`.
+3. Use `challenge_cli` to view, test and submit your solution.
+
+
+## Intended flow of solution
+
+1. Use `high_level_solution.py` from `bc_challenge.solutions.templates` and try to solve task in Python.
+2. You can comment out some restrictions during experiments (e.g. about opcodes or constants count).
+3. If you have some non-optimal or partial solution in Python generate source for low level solution:
+    - `./challenge_cli view_solution t0p1__welcome_code --as-py-code`
+
+Advice: Reuse solution code from previous tasks inside one chain (e.g. `t1p*__*`).
+
+
+## Example
+
+### t0p1__welcome_code
+
+Restrictions:
+- only two opcodes
+- only two constants
+- opcode `MAKE_FUNCTION` is forbidden
+
+Secret is an argument of `sandbox` function.
+
+Trying high level solution:
+
+```python
+from bc_challenge.solutions.builders import create_patch_from_source
+
+
+SOLUTION = create_patch_from_source('''
+def sandbox(secret):
+    return secret 
+''').unwrap()
+```
+
+Testing solution:
+```
+$ ./challenge_cli test-solution t0p1__welcome_code
+
+[*]: Testing: t0p1__welcome_code
+[*]: Secret was found in result!
+---
+'SECRET{AP_9TMVLJ9}'
+```
+
+Submitting solution:
+```
+$ ./challenge_cli submit-solution t0p1__welcome_code
+
+[*]: Testing: t0p1__welcome_code
+[*]: Solution works locally
+[*]: Using access code "[t0p1__welcome_code:30LFnZWyX7pGmCSK]─╥" to submit task solution: "t0p1__welcome_code"
+[*]: Submitting solution...
+[*]: Submission was successful
+[*]: Parsed valid secret: team_id=-31337 task_name='t0p1__welcome_code' flag=None next_task=TaskInfo(name='t0p2__welcome_opcode', access_code='[t0p2__welcome_opcode:xFQB3gBtuhHZBanl]─╥')
+[*]: Access code for "t0p2__welcome_opcode" saved: [t0p2__welcome_opcode:xFQB3gBtuhHZBanl]─╥
+[*]: Client settings and findings persisted
+[*]: Using access code "[t0p2__welcome_opcode:xFQB3gBtuhHZBanl]─╥" to download task source: "t0p2__welcome_opcode"
+[*]: Sources for task "t0p2__welcome_opcode" successfully downloaded
+[*]: Successfully persisted task source: "t0p2__welcome_opcode"
+```
+
+Next level `t0p2__welcome_opcode` is unlocked. Its source code is put into `bc_challenge.tasks`. Access code is automatically saved.
+
+
+### t0p2__welcome_opcode
+
+Task is similar to `t0p1__welcome_code` but only one constant allowed.
+
+View low level form of our `t0p1__welcome_code` solution:
+```
+$ ./challenge_cli view-solution t0p1__welcome_code
+
+[*]: Solution successfully loaded for task: t0p1__welcome_code
+--- CodePatch ---
+opcodes:
+   0: LOAD_FAST        1
+   2: RETURN_VALUE     0
+constants:
+   0: None
+   1: 'secret'
+```
+
+There is `None` constant that is not used but was added by CPython compiler. We want to remove it.
+
+We can view our `t0p1__welcome_code` solution as if it was written with `low_level_solution.py` template:
+```
+$ ./challenge_cli view-solution t0p1__welcome_code --as-py-code
+
+[*]: Solution successfully loaded for task: t0p1__welcome_code
+
+from bc_challenge.solutions.builders import create_patch_from_opcodes_and_constants
+
+
+SOURCE = '''
+LOAD_FAST        1
+RETURN_VALUE     0
+'''
+
+CONSTANTS = (
+    None,  # 0
+    'secret',  # 1
+)
+
+
+SOLUTION = (
+    create_patch_from_opcodes_and_constants(
+        SOURCE, 
+        CONSTANTS
+    )
+    .alt(lambda errs: repr(errs))
+    .unwrap()
+)
+```
+
+Copy it to `bc_challenge/solutions/t0p2__welcome_opcode` and remove redundant `None`:
+```python
+from bc_challenge.solutions.builders import create_patch_from_opcodes_and_constants
+
+
+SOURCE = '''
+LOAD_FAST        0
+RETURN_VALUE
+'''
+
+CONSTANTS = (
+    'secret',  # 0
+)
+
+
+SOLUTION = (
+    create_patch_from_opcodes_and_constants(
+        SOURCE, 
+        CONSTANTS
+    )
+    .alt(lambda errs: repr(errs))
+    .unwrap()
+)
+```
+
+Submit and go to the next level!
+
+
+## Where to get knowledge?
+
+1. Read [docs](https://docs.python.org/3.9/library/dis.html) about Python bytecode.
+2. Take a look at [eval loop implementation](https://github.com/python/cpython/blob/3.9/Python/ceval.c) in CPython.
+3. Search info about Python sandboxes in ~~Google~~ [Yandex](https://yandex.com).
+
+That's all you need :)
+
+Good luck! I hope you'll enjoy it.
+
+@ramon93i7
+
+

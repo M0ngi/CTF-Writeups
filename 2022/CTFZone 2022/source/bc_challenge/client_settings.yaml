@@ -1,0 +1,16 @@
+api:
+  url: https://bbaoopggkbge5ndcv5nn.containers.yandexcloud.net
+  team_token: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTg4LCJqdGkiOiJhMDc3ZGE2ZS02ODUyLTQwMTYtYjZmMC1jOWE4MWNlMjNkZjUiLCJuYW1lIjoiQW9TIn0.cOw4mgjcSs0DUKHJHU5GQOzg1SwE1afNGHVX8U_GOLfI4rmfngCkBy8UAk5MS0a5ihmJ3wq13aFmfyXR7SwVcA
+findings:
+  tasks_access_codes:
+    t0p1__welcome_code: '[t0p1__welcome_code:30LFnZWyX7pGmCSK]─╥'
+    t0p2__welcome_opcode: '[t0p2__welcome_opcode:xFQB3gBtuhHZBanl]─╥'
+    t1p1__vault: '[t1p1__vault:J48cVGuoKx2F9Z4N]─╥'
+    t1p2__smaller: '[t1p2__smaller:ObpDK5SlgShddwUp]─╥'
+    t1p3__smlrr: '[t1p3__smlrr:3litlvvsqDcVBVGE]─╥'
+    t1p4__useless_opcode: '[t1p4__useless_opcode:FzKaEMr6Y8i7lins]─╥'
+    t1p5__super_star: '[t1p5__super_star:xjJRhhIJtSYZikme]─╥'
+    t1p6__fallen_star: '[t1p6__fallen_star:ScRMlMH62mtoUIhU]─╥'
+    t2p1__lost_value: '[t2p1__lost_value:zdbUQAnurDYRM8z9]─╥'
+  flags:
+    t1p6__fallen_star: CTFZone{M3ga_1mP0rt_M4St3R}
