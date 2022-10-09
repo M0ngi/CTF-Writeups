@@ -20,3 +20,4 @@
 	-  [WM CTF 2022 | Rank: 23/457](/README.md#WIP)
 	-  [Hacker's Playground 2022 | Rank: 21/730+](/2022/Hacker's%20Playground%202022/README.md)
 	-  [CTFZone 2022 | Rank: 22/1200+](/2022/CTFZone%202022/README.md)
+	-  [GDG Algiers CTF | Rank: 14/720](/2022/GDG%20Algiers/README.md)
