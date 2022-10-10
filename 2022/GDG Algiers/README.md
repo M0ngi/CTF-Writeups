@@ -6,9 +6,9 @@ For this one, I focused on *Jail* & *PWN*. I solved 3 jails & 4 pwn challenges, 
 
 I did enjoy 3 challenges in this CTF, which encouraged me to work on a detailed writeup for the solves. These challenges are:
 
-* Kevin Higgs: The Revenge (PyJail)
-* Notes keeper (Pwn)
-* Faster python (Pwn)
+* [Kevin Higgs: The Revenge (PyJail)](#jail3)
+* [Notes keeper (Pwn)](#pwn2)
+* [Faster python (Pwn)](#pwn4)
 
 Hope you enjoy this & feel free to contact me for questions, fixes...
 
@@ -29,6 +29,19 @@ Hope you enjoy this & feel free to contact me for questions, fixes...
 
 ### Pwn
 1. <p name="pwn1"><b>Counter</b></p>
+
+Source: [Here](/2022/GDG%20Algiers/source/pwn/Counter/counter.c)<br />
+Solver: [Here](/2022/GDG%20Algiers/source/pwn/Counter/Counter.py)<br />
+
+This was pretty straightforward, we have a counter:
+
+```c
+unsigned char counter = 1;
+```
+
+And we can increment without limits & can decrement on condition it's not equal 1. We must set it 0 to get the flag. An unsigned char is stored as 1 byte, which means we can have values from 0 to 255. Reaching 256 would result in returning back to 0.
+
+Solution: Increment till we overflow `counter` to be set to 0.
 
 <br />
 
