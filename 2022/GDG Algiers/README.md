@@ -53,7 +53,7 @@ Solver: [Here](/2022/GDG%20Algiers/source/pwn/Notes%20keeper/solve.py)<br />
 Binary Security:
 
 <p align="center">
-  <img src="/2022/GDG%20Algiers/img/Notes%20keeper/checksec.png"><br/>
+  <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/checksec.png"><br/>
 </p>
 
 For this one, we were given a binary file with a libc file. We pass it to Ghidra for static analysis & we can find a menu with 4 options:
