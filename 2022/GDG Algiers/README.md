@@ -389,7 +389,7 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 
         After leaking libc, we can write our one gadget in `__free_hook` & use remove note option with index 0 to run our one gadget.
 
-        <br />
+    * **Conclusion**
 
         Despite taking a longer road, I did really enjoy this. I'm still new to heap related challenges so, doing it this way actually helped me a lot. I'll be looking forward for more heap challenges!
 
@@ -397,6 +397,8 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 <br />
 
 3. <p name="pwn3"><b>Mind games</b></p>
+    
+
 
 <br />
 
