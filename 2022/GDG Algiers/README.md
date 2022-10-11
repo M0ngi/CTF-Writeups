@@ -398,6 +398,49 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 
 3. <p name="pwn3"><b>Mind games</b></p>
     
+    Source: [Link](/2022/GDG%20Algiers/source/pwn/Mind%20games/mind-games.c)<br/>
+    Solver: [Link](/2022/GDG%20Algiers/source/pwn/Mind%20games/solve.py)<br/>
+    Libc: 2.31
+
+    * **Static Analysis**
+
+        As a start, it appears a typical PRNG challenge, using `srand(time(NULL));` for the seed.
+
+    * **Exploiting**
+
+        Writing a quick solver for this one, we simply use the given libc & use the same seed in order to get the same random number.
+
+        ```python
+        libc = CDLL("./lib/libc.so.6")
+        r = conn()
+        
+        libc.srand(libc.time(0))
+
+        s = libc.rand()
+        rand = str(s).encode()
+
+        r.sendline(rand)
+        ```
+
+        However, we get a troll message stored in the `flag.txt`... Mind games I see...
+
+        Going through the code again, we notice that we are using "%s" for `scanf` which is vulnerable for Buffer Overflow. Also, we are able to execute a return only if our answer is correct, else `exit` will be called.
+
+        Well, it's what it's! Let's ret2libc.
+
+        A typical ret2libc, nothing is fancy about it. We should only avoid using the byte `0x20` because it stands for a space & `scanf` stops at it.
+
+        So, plan is:
+        1. We leak libc.
+        2. Call main again.
+        3. Ret to a one gadget or `system('/bin/sh')`
+
+        And we should get our shell:
+        
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Mind%20Games/shell.png"><br/>
+        </p>
+    
 
 
 <br />

