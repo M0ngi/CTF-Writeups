@@ -436,17 +436,142 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
         3. Ret to a one gadget or `system('/bin/sh')`
 
         And we should get our shell:
-        
+
         <p align="center">
             <img src="/2022/GDG%20Algiers/img/Mind%20Games/shell.png"><br/>
         </p>
-    
-
 
 <br />
 
 4. <p name="pwn4"><b>Faster Python</b></p>
 
+    This one was a bit special, we were given a python 3.10 binary with a lib `cext.cpython`. We were also given a `main.py` script.
+
+    Python binary: [Link](/2022/GDG%20Algiers/source/pwn/Faster%20Python/challenge/python3.10)<br/>
+    Lib: [Link](/2022/GDG%20Algiers/source/pwn/Faster%20Python/challenge/cext.cpython-310-x86_64-linux-gnu.so)<br/>
+    Main Script: [Link](/2022/GDG%20Algiers/source/pwn/Faster%20Python/challenge/main.py)<br/>
+    Security:
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Faster%20Python/checksec.png"><br/>
+    </p>
+
+    * **Static Analysis**
+
+        We start with the `main.py`. We see that we are importing a `cext` which I assume is a custom one & the given library file is the module itself.
+
+        ```python
+        import cext as module
+
+        class CBytes:
+            def __init__(self, size):
+                b = module.input(size)
+                self.b = b
+
+            def __len__(self):
+                return module.len(self.b)
+
+            def print(self):
+                return module.print(self.b)
+        
+        ...
+
+        if __name__ == "__main__":
+            size = getsize()
+            cb = CBytes(size)
+        ```
+
+        So when an instance of `CBytes` class is created, we'll call `input` function, located in the module. Examining the `getsize`:
+
+        ```python
+        def getsize(maxsize=MAXSIZE):
+            size = int(input("Enter size: "))
+            assert(size < maxsize)
+            return size
+        ```
+
+        We see there is a `MAXSIZE` limit however, there is the possibility to use a negative or a null size.
+
+        We also get the ability to call a `print` function from our custom module. We can also change our size & call `input` again.
+
+        Enough from the script, we head to the library! We pass the lib file to Ghidra & dive into the functions. I focused mainly on the `input` function:
+
+        <br />
+
+        <details>
+            <summary>Decompiled (Trimmed)</summary>
+
+        ```c
+        undefined8 cext_input(undefined8 param_1,undefined8 param_2)
+        {
+            ...
+            tmp = _PyArg_ParseTuple_SizeT(0,param_2,&DAT_00102002,&size);
+            if (tmp == 0) {
+                ret = 0;
+            }
+            else {
+                size2 = (ulong)size;
+                if (tmp_char == L'y') {
+                i = 0;
+                }
+                else {
+                do {
+                    i = 0;
+                    __printf_chk(1,"Enter bytes: ");
+                    if (size2 != 0) {
+                        do {
+                            sVar1 = read(0,&tmp_char,1);
+                            if (sVar1 == -1) goto LAB_00101411;
+                            if (sVar1 == 0) break;
+                            res[i] = (char)tmp_char;
+                            i = i + 1;
+                        } while (size2 != i);
+                    }
+        ```
+
+        </details>
+
+        I would suppose that `_PyArg_ParseTuple_SizeT` simply initializes the `size` variable using `param_2`. Considering that we can use negative sizes, the following convertion might overflow:
+
+        ```c
+        size2 = (ulong)size;
+        ```
+
+        I had to hurry a little so I didn't go deeper for this one.
+    
+    * **Exploiting**
+
+        First thing first, I tried out the negative size & it worked. What makes it better, our input is reflected to us:
+
+        ```c
+        __printf_chk(1,"Entered bytes: %s\n",res);
+        ```
+
+        Which gives us a great opportunity for leaks. Now, what size do we use? Well, I had to bruteforce that to gain time but I'm pretty sure it can be calculated since it's a simple overflow problem.
+
+        At first, I had to find a perfect size to be able to leak the canary. After a while debuging with GDB, checking stack... I managed to get my leak.
+        
+        After that, I looked for a PIE leak. This one was a pretty hard to get a leak & avoid a crash. After reaching the canary, I had to overwrite the saved `rbp` value in order to leak a binary address. Doing so, resulted in a crash after returning.
+
+        I had basically 2 choices:
+        1. Leak PIE, re-send input & ROP Chain
+        2. Leak the saved `rbp`, which means more steps to do...
+
+        At this point, I decided go for the quick ROP chain, however, the address I was leaking was located `32 bytes` after the saved return address. I could've looked for an other leak more further to get a better ROP chain but that would mean finding an other size & going through the stack values again... Let it be 32 bytes!
+
+        What possible ROP chain can give me a control over the execution with only 4 gadgets? First thing I did was checking the registers' values when returning to check if there is anything useful:
+
+        <p align="center">
+            <img src="/2022/GDG%20Algiers/img/Faster%20Python/reg.png"><br/>
+        </p>
+
+        The `rsi` register contains the address of our input in the stack, the `rdi` isn't a stack address. We can make use of the `rsi` register if we make a `read` call since it'll be set to a close address to our ROP chain, however we'll have to zero the `rdi` register & put a good enough value in `rdx` for the `read` call.
+
+        Or, we could look for a way to pivot our stack to `rsi` or `rdi`.
+
+        I looked for a gadget to pivot but couldn't find anything so I went for the other plan, calling `read`. After a while of searching & going through the gadgets, I found a `pop rdi; pop rdx; ret` gadget. We can use 4 gadgets, that's 32 bytes, If we use this gadget, we'll use 16 bytes for the pop & it'll take the first 8 bytes. This leaves us with 8 bytes, enough to put a `read` address! A perfect fit!
+
+        After that, we'll be able to do a ROP chain without limits. We look into the binary (python) for more gadgets. We can find a `syscall` gadget but it doesn't have a `ret` therefore, this might be used only at the end of our ROP chain. And we can find pretty much everything else we need to control registers so that should be it; We call `read` to write a "/bin/sh" into a known memory region & then use `syscall` to execute `execve` & pop our shell!
+        
 <br />
 
 ### Jail
