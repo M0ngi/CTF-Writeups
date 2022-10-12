@@ -576,6 +576,8 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 ### Jail
 1. <p name="jail1"><b>Red Diamond</b></p>
 
+    This one was pretty straightforward, a ruby jail. We can execute any code we want so... `system "/bin/sh"` will pop our shell.
+    
 <br />
 
 2. <p name="jail2"><b>Type it</b></p>
