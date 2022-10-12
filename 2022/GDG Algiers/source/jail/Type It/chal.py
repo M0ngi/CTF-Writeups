@@ -10,10 +10,8 @@ def safe_eval(s, func):
     if not check(s):
         print("Input is bad")
     else:
-        r = f"{func.__name__}({s})"
-        print(r)
         try:
-            print(eval(r, {"__builtins__": {func.__name__: func}, "flag": FLAG}))
+            print(eval(f"{func.__name__}({s})", {"__builtins__": {func.__name__: func}, "flag": FLAG}))
         except:
             print("Error")
 

@@ -577,10 +577,25 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 1. <p name="jail1"><b>Red Diamond</b></p>
 
     This one was pretty straightforward, a ruby jail. We can execute any code we want so... `system "/bin/sh"` will pop our shell.
-    
+
 <br />
 
 2. <p name="jail2"><b>Type it</b></p>
+
+    Source: [Link](/2022/GDG%20Algiers/source/jail/Type%20It/chal.py)<br/>
+    Solution: `flag.split())(flag)#`
+
+    This was a python jail, We were given the source code. We mainly create a string using format then we `eval` it. The string is in the form: `type(S)` where S is our input.
+
+    Not only that, we only had the flag in `flag` variable & only `type` function is conserved. Also we had a black list:
+
+    ```python
+    BLACKLIST = '"%&\',-/_:;@\\`{|}~*<=>[] \t\n\r'
+    ```
+
+    For this one, we can simply abuse the fact that we can comment out the last `)` & use the returned class from `type` to create a string that's initialized with the flag variable. It can be done for the list type too, which was what I've done first.
+
+    Our payload will be interpreted as `type(flag.split())(flag)`, which will simply return a list initialized with the flag.
 
 <br />
 
