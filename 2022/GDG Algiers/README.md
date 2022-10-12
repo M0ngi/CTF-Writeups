@@ -495,8 +495,6 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 
         Enough from the script, we head to the library! We pass the lib file to Ghidra & dive into the functions. I focused mainly on the `input` function:
 
-        <br />
-
         <details>
             <summary>Decompiled (Trimmed)</summary>
 
@@ -537,6 +535,7 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
         ```
 
         I had to hurry a little so I didn't go deeper for this one.
+        <br/>
     
     * **Exploiting**
 
