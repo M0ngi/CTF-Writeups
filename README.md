@@ -1,6 +1,5 @@
 # CTF Writeups
 
-------------
 
 #### Whoami?
 
