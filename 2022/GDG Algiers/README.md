@@ -788,7 +788,7 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
         MARK
     ```
 
-    Now, if we add a TUPLE Opcode, we'll create a tuple in the stack:
+    Now, if we add a **TUPLE** Opcode, we'll create a tuple in the stack:
 
     ```
     MARK
