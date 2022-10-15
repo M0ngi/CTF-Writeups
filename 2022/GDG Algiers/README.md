@@ -924,4 +924,6 @@ I would like to thank my team mate [t0m7r00z](https://github.com/t0m7r00z) for t
 
 ------------
 
-WIP
+This was a good one. I didn't go through the other categories due to the time limit however, the challenges I've played are great. I learnt a couple of new stuff, such as the pickle opcode, some heap stuff... So this was worth the writeup! I hope people would learn new stuff from this & I'll be available for any updates, explanations or questions. 
+
+Thanks for reading!
