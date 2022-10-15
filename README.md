@@ -2,6 +2,21 @@
 
 ------------
 
+#### Whoami?
+
+Hello! Welcome to my CTF Writeups collection. I'm Mohamed Mongi Saidane, or you can find me by the name M0ngi online. I'm a Software Engineer & a CTF Player. Feel free to contact me about any questions and/or remarks.
+
+My contacts:
+* Email: saidanemongi@gmail.com
+* LinkedIn: [Profile](https://www.linkedin.com/in/m0ngi/)
+* Discord: Mongi#9840
+
+Hope you learn few stuff from these writeups.
+
+------------
+
+#### CTFs
+
 - [2021](/2021)
 	-  [Yogosha Christmas CTF | Rank: 20/300+](/2021/YogoshaChristmas)
 - [2022](/2022)
