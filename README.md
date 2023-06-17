@@ -37,3 +37,4 @@ Hope you learn few stuff from these writeups.
 	-  [GDG Algiers CTF | Rank: 14/720](/2022/GDG%20Algiers/README.md)
 	-  [CSaw Quals CTF | Rank: 1st MENA Region | 14/900 World Wide](/2022/CSaw%20Quals/README.md)
 	-  [AfricaCrypt Qualifications | Rank: 1st](/2023/AfricaCrypt/README.md)
+	-  [Nahamcon CTF 2023 | Rank: 114](/2023/Nahamcon/README.md#WIP)
