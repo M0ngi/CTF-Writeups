@@ -45,7 +45,7 @@ write(1, stackAdr, 256)
 
 ### Rev
 
-3. <p name="pwn2"><b>rev01</b></p>
+3. <p name="rev1"><b>rev01</b></p>
 
 I downloaded the binary for this 30 minutes before the CTF ends so I had to hurry. Running the process in `gdb` showed that there is an anti-debugging mechanism implemented. Patched it (address 0x00401e6b) & moved on.
 
