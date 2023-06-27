@@ -40,3 +40,5 @@ Hope you learn few stuff from these writeups.
 	-  [Nahamcon CTF 2022 | Rank: 10/1704](#)
 	-  [AfricaCrypt Qualifications | Rank: 1st](/2023/AfricaCrypt/README.md)
 	-  [Nahamcon CTF 2023 | Rank: 114](/2023/Nahamcon/README.md#WIP)
+	-  [Hackfest Quals CTF 2023 | Rank: 1st](/2023/Hackfest%20Quals/README.md#WIP)
+	-  [Hackfest Finals CTF 2023 | Rank: 1st](/2023/Hackfest%20Finals/README.md#WIP)
