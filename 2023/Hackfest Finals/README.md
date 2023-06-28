@@ -4,6 +4,8 @@
 
 I wouldn't consider this a writeup, it's more of an analysis of an interesting function, `_dl_fini`. More details can be found below. We'll start with the challenge in order to get more context.
 
+note: Libc 2.31 is used for this.
+
 ### big boi warmup (pwn)
 
 A simple binary, not much to look into:
