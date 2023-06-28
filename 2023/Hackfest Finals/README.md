@@ -533,7 +533,7 @@ In order to exploit this function, we'll need:
 - 2/3 writes are necessary: `system` address + "/bin/sh" (Or "sh" if you want to save up bytes, system uses the environment variable PATH). If the registers at a certain call are suitable for a one gadget, only 1 write will be needed.
 - Program must end execution eventually. Either via `exit` or via returning from `main`. (No infinite loops, no `_exit` calls)
 
-Compared to abusing exit handlers, we don't have to leak a ponter guard so, that's less reading (which may not always be possible?)
+Compared to abusing exit handlers, we don't have to leak a pointer guard so, that's less reading (which may not always be possible?)
 
 This also gives the possibility to chain up calls if needed however, we are very limited with parameters. (Only 1 parameter & the value is passed to all of the calls)
 
