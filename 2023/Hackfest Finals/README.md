@@ -4,7 +4,7 @@
 
 I wouldn't consider this a writeup, it's more of an analysis of an interesting function, `_dl_fini`. More details can be found below. We'll start with the challenge in order to get more context.
 
-note: Libc 2.31 is used for this.
+Note: Libc 2.31 is used for this. [Last section](Libc%202.35) will talk about exploitation in libc 2.35
 
 ### big boi warmup (pwn)
 
@@ -540,3 +540,107 @@ Compared to abusing exit handlers, we don't have to leak a pointer guard so, tha
 This also gives the possibility to chain up calls if needed however, we are very limited with parameters. (Only 1 parameter & the value is passed to all of the calls)
 
 Personally, if I'll ever have to exploit an exit handler to control the execution, I'd rather go for this.
+
+# Libc 2.35
+
+Now, there are 2 main changes that we'll talk about here:
+- Both `__rtld_lock_lock_recursive` & `__rtld_lock_unlock_recursive` are read only.
+- A change in lock mechanism.
+
+So? What do we have now? We still have the last call gadget however there is a problem. If we would try simply overwriting the value pointed by `rdi`, the process would hang. Now if we go back to `_dl_fini`, the first argument passed to `__rtld_lock_lock_recursive` is a mutex. This call actually takes us to `pthread_mutex_lock` function, which is the following:
+
+```c
+int
+PTHREAD_MUTEX_LOCK (pthread_mutex_t *mutex)
+{
+  /* See concurrency notes regarding mutex type which is loaded from __kind
+     in struct __pthread_mutex_s in sysdeps/nptl/bits/thread-shared-types.h.  */
+  unsigned int type = PTHREAD_MUTEX_TYPE_ELISION (mutex);
+
+  LIBC_PROBE (mutex_entry, 1, mutex);
+
+  if (__builtin_expect (type & ~(PTHREAD_MUTEX_KIND_MASK_NP
+				 | PTHREAD_MUTEX_ELISION_FLAGS_NP), 0))
+    return __pthread_mutex_lock_full (mutex);
+
+  if (__glibc_likely (type == PTHREAD_MUTEX_TIMED_NP))
+    {
+      FORCE_ELISION (mutex, goto elision);
+    simple:
+      /* Normal mutex.  */
+      LLL_MUTEX_LOCK_OPTIMIZED (mutex);
+  
+  ...
+```
+
+Now, this method is causing the process to hang & the reason is, when we write our "/bin/sh" into the memory address pointed by `rdi`, the mutex's value changes. If we examine the type of the mutex in `rtld_global` struct:
+
+```c
+struct rtld_global
+{
+  ...
+  /* During the program run we must not modify the global data of
+     loaded shared object simultanously in two threads.  Therefore we
+     protect `_dl_open' and `_dl_close' in dl-close.c.
+
+     This must be a recursive lock since the initializer function of
+     the loaded object might as well require a call to this function.
+     At this time it is not anymore a problem to modify the tables.  */
+  __rtld_lock_define_recursive (EXTERN, _dl_load_lock)
+  ...
+}
+```
+
+Checking man pages to get more info on this mutex type:
+
+>(In the case of PTHREAD_MUTEX_RECURSIVE mutexes, the mutex shall
+>become available when the count reaches zero and the calling
+>thread no longer has any locks on this mutex.)
+
+So, if the value is no longer 0 therefore, the mutex taken "by someone else". That's why the process hanged. It was simply waiting for the mutex to be freed.
+
+I immediately thought of changing the type of the mutex but how? and to what?
+
+- How? `rdi` is pointing at `_rtld_global+2568`. The type is stored at `_rtld_global+2568+0x10`
+- To what?
+
+Well, first thing I tried was setting the number of mutex type to 0xffffffff & I found myself in `__pthread_mutex_lock_full` function. This function didn't hang the process & successfully returned! So how do we reach?
+
+```c
+unsigned int type = PTHREAD_MUTEX_TYPE_ELISION (mutex);
+
+if (__builtin_expect (type & ~(PTHREAD_MUTEX_KIND_MASK_NP
+				 | PTHREAD_MUTEX_ELISION_FLAGS_NP), 0))
+    return __pthread_mutex_lock_full (mutex);
+```
+
+the variable `type` is going to be the number stored at `_rtld_global+2568+0x10`. I'll quickly explain `__builtin_expect`: This is used for compiler optimisation, it should tell that the expected value for that expression is 0 most of the time, so optimise the code with that in consideration.
+
+Now this is the condition to call `__pthread_mutex_lock_full`:
+
+```c
+type & ~(PTHREAD_MUTEX_KIND_MASK_NP | PTHREAD_MUTEX_ELISION_FLAGS_NP
+```
+
+And we have:
+
+```c
+PTHREAD_MUTEX_KIND_MASK_NP      = 3
+PTHREAD_MUTEX_ELISION_FLAGS_NP  = PTHREAD_MUTEX_ELISION_NP | PTHREAD_MUTEX_NO_ELISION_NP
+PTHREAD_MUTEX_ELISION_NP        = 256
+PTHREAD_MUTEX_NO_ELISION_NP     = 512
+```
+
+You can get that from the source code. Those are constants.
+
+So, that leaves us with
+
+```c
+type & 0xfc
+```
+
+Any value that gives a non zero there will result in calling `__pthread_mutex_lock_full`. Now, we have a switch case with 3 main code blocks. I didn't dive into these however, I tried a couple of values (0x4, 0xffffffff) so I moved on! With this, we can then change the value of `_rtld_global+2568` to "/bin/sh", pick an address to store the address of `system`. Calculate our new offset & overwrite the binary base.
+
+For reference, I've included a solver for `pwn/Robots revenge` in which I used this technique. The dockerfile includes a setup to debug the execution. During the CTF, I had an arbitrary write but didn't have enough time to gather the proper offsets in the dynamic loader to pop the shell, plus I wasn't aware of the mutex problem at that time so, I'm glad I got back to this & despite this being an unintended solution, this was a lot of fun!
+
+I'm looking forward for more stuff like this!
