@@ -38,6 +38,7 @@ Hope you learn few stuff from these writeups.
 	-  [CSaw Quals CTF | Rank: 1st MENA Region | 14/900 World Wide](/2022/CSaw%20Quals/README.md)
 	-  [CSaw Finals CTF | Rank: 2nd MENA Region](#)
 	-  [Nahamcon CTF 2022 | Rank: 10/1704](#)
+- [2023](/2023)
 	-  [AfricaCrypt Qualifications | Rank: 1st](/2023/AfricaCrypt/README.md)
 	-  [Nahamcon CTF 2023 | Rank: 114](/2023/Nahamcon/README.md#WIP)
 	-  [Hackfest Quals CTF 2023 | Rank: 1st](/2023/Hackfest%20Quals/README.md)
