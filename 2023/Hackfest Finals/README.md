@@ -4,7 +4,7 @@
 
 I wouldn't consider this a writeup, it's more of an analysis of an interesting function, `_dl_fini`. More details can be found below. We'll start with the challenge in order to get more context.
 
-Note: Libc 2.31 is used for this. [Last section](#Libc%202.35) will talk about exploitation in libc 2.35
+Note: Libc 2.31 is used for this. [Last section](#Libc-235) will talk about exploitation in libc 2.35
 
 ### big boi warmup (pwn)
 
