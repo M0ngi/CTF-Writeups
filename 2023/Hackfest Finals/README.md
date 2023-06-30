@@ -30,7 +30,7 @@ Plan:
 
 Now, we can write but controlling what we'll write is a mess. It's possible to make a write primitive but it'll require lot of alignments & paddings (AND DEBUGGING) therefore, I went for a simple one byte write primitive.
 
-Plan is simple, in order to fix our padding, we'll quarantee a 256 bytes in the payload in which we are free to control, doesn't have to be consecutive. We start by keeping them after our `%hhn` (hhn in order to write 1 byte). Then we check how much we are writing as a default value & write a function to calculate how many bytes are needed to reach our target value. Which is the following line:
+Plan is simple, in order to fix our padding, we'll guarantee a 256 bytes in the payload in which we are free to control, doesn't have to be consecutive. We start by keeping them after our `%hhn` (hhn in order to write 1 byte). Then we check how much we are writing as a default value & write a function to calculate how many bytes are needed to reach our target value. Which is the following line:
 
 ```python
 b = (112-7 + data)%256
