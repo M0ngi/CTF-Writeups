@@ -124,8 +124,8 @@ If we dive into the source code of libc, we can see in `sysdeps/unix/sysv/linux/
 
 The `LIBC_START_MAIN` function does 3 interesting things:
 - Registers an exit handler
-- Call main function
-- Calls exit
+- Calls `main` function
+- Calls `exit`
 
 You can examine the definition in `csu/libc-start.c`.
 
