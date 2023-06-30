@@ -182,7 +182,7 @@ exit (int status)
 
 This is the code for `exit` function. It's a simple trampoline function that'll call `__run_exit_handlers`. Now the name of this function is clear enough, if you're not familliar with exit handlers, those are function called at the end of the execution in order to do some cleanups. You can register handlers using the `atexit` function.
 
-The exit handlers are stored in a linked list, it contains the address of the function to be executed however, as a security precaution, the pointer to the function is mangled. This isn't our target today, we used this in qualification so now, we move on.
+The exit handlers are stored in a linked list, it contains the address of the function to be executed however, as a security precaution, the pointer to the function is mangled. This isn't our target today, we used this in qualification CTF so now, we move on.
 
 Back to the `LIBC_START_MAIN`. We had a function registered as an exit handler, remember? What's this function?
 
