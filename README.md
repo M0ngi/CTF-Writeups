@@ -21,7 +21,7 @@ Hope you learn few stuff from these writeups.
 - [2022](/2022)
 	-  [NCSC | Rank: 7/52](/2022/NCSC)
 	-  [Securinets CTF Quals | Rank: 22/295](/2022/Securinets%20CTF%20Quals)
-	-  [Hack The Box - Cyber Apocalypse (WIP) | Rank: 245/7000+](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse)
+	-  [Hack The Box - Cyber Apocalypse | Rank: 245/7000+](/2022/Hack%20The%20Box%20-%20Cyber%20Apocalypse)
 	-  [Cyber League CTF, hosted by Securinets ESPRIT - Tunisia. | Rank: 1st place.](/README.md#WIP)
 	-  [ImaginaryCTF 2022 | Rank: 23/815](/README.md#WIP)
 	-  [BDSec CTF 2022 | Rank: 1st place](/README.md#WIP)
