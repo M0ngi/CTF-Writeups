@@ -8,7 +8,7 @@ Hello! Welcome to my CTF Writeups collection. I'm Mohamed Mongi Saidane, or you 
 My contacts:
 * Email: saidanemongi@gmail.com
 * LinkedIn: [Profile](https://www.linkedin.com/in/m0ngi/)
-* Discord: Mongi#9840
+* Discord: M0ngi
 
 Hope you learn few stuff from these writeups.
 
